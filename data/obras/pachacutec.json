@@ -1,0 +1,104 @@
+{
+  "avance": [
+    {
+      "fecha": "2026-01-15",
+      "responsable": "Leonardo",
+      "avance": 5,
+      "obs": "Se ejecutó encofrado y ajuste de apuntalamiento en losa del Bloque A (2do nivel). Se verificó nivelación y se dejó el frente listo para continuar cierre y preparar vaciado. Sin incidentes. EPP completo.",
+      "fotos": [
+        "data/fotos/pachacutec_2026-01-15_20260115134137889245_images (3).jpg",
+        "data/fotos/pachacutec_2026-01-15_20260115134137891040_tubing-2672187_1280.jpg",
+        "data/fotos/pachacutec_2026-01-15_20260115134137892191_images (2).jpg"
+      ],
+      "partida": {
+        "nombre": "Encofrado y desencofrado de losa - Bloque A (2do nivel)",
+        "rendimiento": 6.0,
+        "unidad": "M2",
+        "jornal_horas": 8,
+        "cantidad_ejecutada": 12.0
+      },
+      "costos": {
+        "mano_de_obra": [
+          {
+            "Descripción": "OPERADOR DE EQUIPO",
+            "Cuadrilla": 1.0,
+            "Precio Unit.": 25.12,
+            "Cantidad (HH)": 1.3333333333333333,
+            "Parcial (S/)": 33.49333333333333
+          }
+        ],
+        "materiales": [
+          {
+            "Descripción": "ENCOFRADO Y DESENCOFRADO NORMAL",
+            "Cantidad": 1.0,
+            "Precio Unit.": 40.0,
+            "Parcial (S/)": 40.0
+          },
+          {
+            "Descripción": "ENCOFRADO Y DESENCOFRADO NORMAL",
+            "Cantidad": 11.0,
+            "Precio Unit.": 40.0,
+            "Parcial (S/)": 440.0
+          }
+        ],
+        "equipos": [
+          {
+            "Descripción": "ELASTOMERICO",
+            "Cantidad": 1.0,
+            "Precio Unit.": 222.5,
+            "Parcial (S/)": 222.5
+          }
+        ],
+        "otros": [
+          {
+            "Descripción": "GUARDIANIA DE OBRA",
+            "Cantidad": 0.1,
+            "Precio Unit.": 3900.0,
+            "Parcial (S/)": 390.0
+          }
+        ]
+      },
+      "totales": {
+        "mano_de_obra": 33.49333333333333,
+        "materiales": 480.0,
+        "equipos": 222.5,
+        "otros": 390.0,
+        "total_general": 1125.9933333333333,
+        "total_general_ejecutado": 13511.92
+      }
+    }
+  ],
+  "presupuesto_total": 90000.0,
+  "cronograma": [
+    {
+      "nombre": "Pasable",
+      "fecha_inicio": "2026-01-24",
+      "fecha_fin": "2026-02-13",
+      "monto_planificado": 20000.0,
+      "descripcion": "Concret 20",
+      "estado": "Pendiente",
+      "creado_por": "pasante-pachacutec",
+      "id": "crono_20260114132830987737"
+    },
+    {
+      "nombre": "Avanzes",
+      "fecha_inicio": "2026-01-30",
+      "fecha_fin": "2026-02-27",
+      "monto_planificado": 30000.0,
+      "descripcion": "Compras",
+      "estado": "Pendiente",
+      "creado_por": "pasante-pachacutec",
+      "id": "crono_20260114132905084607"
+    }
+  ],
+  "hitos_pago": [
+    {
+      "descripcion": "Cimentación (Zapatas y sobrecimientos)",
+      "fecha": "2026-01-15",
+      "monto": 12000.0,
+      "estado": "Pendiente",
+      "observacion": "Incluye excavación, acero, encofrado y vaciado de concreto",
+      "id": "hito_20260114095958669142"
+    }
+  ]
+}

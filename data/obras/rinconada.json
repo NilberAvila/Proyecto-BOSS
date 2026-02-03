@@ -1,0 +1,143 @@
+{
+  "avance": [
+    {
+      "fecha": "2026-01-15",
+      "responsable": "Jose",
+      "avance": 4,
+      "obs": "Se realizó vaciado de concreto en zapata y se completó el encofrado de viga de cimentación en Frente 1. Se verificó nivelación y plomos. Sin incidentes. Se dejó área señalizada y limpia al finalizar.",
+      "fotos": [
+        "data/fotos/rinconada_2026-01-15_20260115135205484761_images (1).jpg",
+        "data/fotos/rinconada_2026-01-15_20260115135205485791_premium_photo-1681989486976-9ec9d2eac57a.jpg",
+        "data/fotos/rinconada_2026-01-15_20260115135205487757_images.jpg"
+      ],
+      "partida": {
+        "nombre": "Cimentación: vaciado de zapata y encofrado de viga de cimentación (Frente 1)",
+        "rendimiento": 5.0,
+        "unidad": "M3",
+        "jornal_horas": 8,
+        "cantidad_ejecutada": 10.0
+      },
+      "costos": {
+        "mano_de_obra": [
+          {
+            "Descripción": "CAPATAZ",
+            "Cuadrilla": 2.0,
+            "Precio Unit.": 27.628,
+            "Cantidad (HH)": 3.2,
+            "Parcial (S/)": 88.40960000000001
+          }
+        ],
+        "materiales": [
+          {
+            "Descripción": "CONCRETO PREMEZCLADO C/ CEMENTO TIPO I, F'C = 175 KG/CM2",
+            "Cantidad": 10.0,
+            "Precio Unit.": 220.0,
+            "Parcial (S/)": 2200.0
+          }
+        ],
+        "equipos": [
+          {
+            "Descripción": "DOBLADORA",
+            "Cantidad": 1.0,
+            "Precio Unit.": 2.89,
+            "Parcial (S/)": 2.89
+          }
+        ],
+        "otros": [
+          {
+            "Descripción": "GUARDIANIA DE OBRA",
+            "Cantidad": 0.1,
+            "Precio Unit.": 3900.0,
+            "Parcial (S/)": 390.0
+          }
+        ]
+      },
+      "totales": {
+        "mano_de_obra": 88.40960000000001,
+        "materiales": 2200.0,
+        "equipos": 2.89,
+        "otros": 390.0,
+        "total_general": 2681.2996,
+        "total_general_ejecutado": 26812.996
+      }
+    },
+    {
+      "fecha": "2026-01-19",
+      "responsable": "jefe",
+      "avance": 5,
+      "obs": "asdm  fjds",
+      "fotos": [
+        "https://res.cloudinary.com/dmf9fsyvt/image/upload/v1768800435/obras_boss/obras_boss/rinconada/2026-01-19/20260119002710638875.jpg",
+        "https://res.cloudinary.com/dmf9fsyvt/image/upload/v1768800436/obras_boss/obras_boss/rinconada/2026-01-19/20260119002711802044.jpg",
+        "https://res.cloudinary.com/dmf9fsyvt/image/upload/v1768800436/obras_boss/obras_boss/rinconada/2026-01-19/20260119002712494901.jpg"
+      ],
+      "partida": {
+        "nombre": "admin",
+        "rendimiento": 6.0,
+        "unidad": "m3",
+        "jornal_horas": 8,
+        "cantidad_ejecutada": 5.0
+      },
+      "costos": {
+        "mano_de_obra": [
+          {
+            "Descripción": "OPERADOR DE EQUIPO",
+            "Cuadrilla": 1.0,
+            "Precio Unit.": 25.12,
+            "Cantidad (HH)": 1.3333333333333333,
+            "Parcial (S/)": 33.49333333333333
+          }
+        ],
+        "materiales": [],
+        "equipos": [],
+        "otros": []
+      },
+      "totales": {
+        "mano_de_obra": 33.49333333333333,
+        "materiales": 0.0,
+        "equipos": 0.0,
+        "otros": 0.0,
+        "total_general": 33.49333333333333,
+        "total_general_ejecutado": 167.46666666666667
+      }
+    }
+  ],
+  "presupuesto_total": 90000.0,
+  "cronograma": [
+    {
+      "nombre": "Cimentación",
+      "fecha_inicio": "2026-01-06",
+      "fecha_fin": "2026-01-15",
+      "monto_planificado": 12000.0,
+      "descripcion": "Cimentación + concreto f'c 210",
+      "id": "crono_20260113232223958700"
+    },
+    {
+      "nombre": "Albañileria",
+      "fecha_inicio": "2026-02-06",
+      "fecha_fin": "2026-02-20",
+      "monto_planificado": 18000.0,
+      "descripcion": "Muros + tarrajeo",
+      "id": "crono_20260113232348480020"
+    }
+  ],
+  "hitos_pago": [
+    {
+      "descripcion": "Valorización N 01",
+      "fecha": "2026-01-31",
+      "monto": 15000.0,
+      "estado": "Pagado",
+      "observacion": "Valorización mensual enero",
+      "id": "hito_20260113233125876666",
+      "creado_por": "jefe"
+    },
+    {
+      "descripcion": "Valorización N 02",
+      "fecha": "2026-02-28",
+      "monto": 20000.0,
+      "estado": "Pagado",
+      "observacion": "Valorización mensual febrero",
+      "id": "hito_20260113233201822788"
+    }
+  ]
+}

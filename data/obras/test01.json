@@ -1,0 +1,17 @@
+{
+  "avance": [],
+  "presupuesto_total": 0.0,
+  "cronograma": [
+    {
+      "nombre": "Partida 1",
+      "fecha_inicio": "2026-01-01",
+      "fecha_fin": "2026-01-10",
+      "monto_planificado": 1000.0,
+      "descripcion": "",
+      "estado": "Aprobado",
+      "creado_por": "jefe",
+      "id": "crono_20260115170428783915"
+    }
+  ],
+  "hitos_pago": []
+}
