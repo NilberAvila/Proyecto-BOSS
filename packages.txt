@@ -1,6 +1,2 @@
-# Dependencias del sistema para Streamlit Cloud
-# Este archivo especifica paquetes de sistema (apt-get) necesarios
-
-# Para procesamiento de imágenes con Pillow
 libjpeg-dev
 zlib1g-dev
