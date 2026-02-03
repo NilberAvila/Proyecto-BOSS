@@ -1,28 +1,8 @@
-# ============================================
-# DEPENDENCIAS DEL PROYECTO BOSS 9.0
-# ============================================
-
-# Framework principal
-streamlit>=1.31.0
-
-# Base de datos y almacenamiento
-firebase-admin>=6.3.0
-
-# Procesamiento de datos
-pandas>=2.0.0
-
-# HTTP requests
-requests>=2.31.0
-
-# Generación de reportes PDF
-reportlab>=4.0.0
-
-# Procesamiento de imágenes
-pillow>=10.0.0
-
-# Almacenamiento de imágenes en la nube
-cloudinary>=1.36.0
-
-# Python estándar (ya incluido, pero explícito para documentación)
-# datetime, json, os, pathlib, typing, unicodedata
+streamlit
+firebase-admin
+pandas
+requests
+reportlab
+pillow
+cloudinary
 
