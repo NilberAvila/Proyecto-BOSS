@@ -66,5 +66,5 @@ Thumbs.db
 .coverage
 htmlcov/
 
-
-.streamlit_secrets.txt
+# Streamlit secrets
+streamlit_secrets.txt
