@@ -65,3 +65,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+
+.streamlit_secrets.txt
