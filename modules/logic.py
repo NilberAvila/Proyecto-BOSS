@@ -186,6 +186,7 @@ def crear_avance_dict(
     unidad_medida: str = "",
     horas_mano_obra: float = 0,
     cantidad_ejecutada: float = 0,
+    descripcion_avance: str = "",
     insumos_mo: Optional[list] = None,
     insumos_mat: Optional[list] = None,
     insumos_eq: Optional[list] = None,
@@ -198,6 +199,8 @@ def crear_avance_dict(
         "avance": avance_pct,
         "obs": observaciones,
         "fotos": rutas_fotos,
+        "nombre_partida": nombre_partida,
+        "descripcion_avance": descripcion_avance,
         "partida": {
             "nombre": nombre_partida,
             "rendimiento": rendimiento_partida,

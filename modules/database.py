@@ -178,6 +178,21 @@ def obtener_avances_obra(codigo_obra: str) -> List[Dict[str, Any]]:
     return avances if isinstance(avances, list) else []
 
 
+def limpiar_avances_obra(codigo_obra: str) -> Tuple[bool, str]:
+    """
+    Elimina todos los partes diarios (avances) de una obra.
+    Mantiene intacta la obra, presupuesto, cronograma y hitos de pago.
+    """
+    try:
+        ref = db.collection("obras").document(codigo_obra)
+        ref.update({
+            "avance": []
+        })
+        return True, "Todos los partes diarios han sido eliminados correctamente."
+    except Exception as e:
+        return False, f"Error al limpiar avances: {str(e)}"
+
+
 # ==================== PRESUPUESTO ====================
 
 def actualizar_presupuesto_obra(codigo_obra: str, monto: float) -> Tuple[bool, str]:

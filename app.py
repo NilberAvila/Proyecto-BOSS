@@ -1,4 +1,4 @@
-#Conexción a base de datos FIREBASE
+# ==================== CONEXIÓN A BASE DE DATOS FIREBASE ====================
 import firebase_admin
 from firebase_admin import credentials, firestore
 import streamlit as st
@@ -65,19 +65,902 @@ def inicializar_firebase():
 db = inicializar_firebase()
 
 import urllib.parse
-import streamlit as st
 from datetime import date
 import pandas as pd
-import os
 from pathlib import Path
 import unicodedata
 from typing import Optional, Tuple, Dict, List, Any
 from modules.caja_chica import mostrar_caja_chica
-import json
 import requests
 import base64
 
+# ==================== CSS GLOBAL PARA OCULTAR BOTONES DE INCREMENTO ====================
+st.markdown("""
+<style>
+/* Ocultar botones – y + en inputs numéricos */
 
+/* Chrome, Edge, Safari */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Estilo para placeholders difuminados */
+input::placeholder {
+    color: #9BA8AB !important;
+    opacity: 0.7 !important;
+    font-weight: 300 !important;
+}
+
+/* ===== NUEVO COLOR DE FONDO PARA LOS INPUTS ===== */
+/* Estilo para inputs de texto */
+.stTextInput input {
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    transition: all 0.2s ease !important;
+    background-color: #021024 !important;
+    color: #FFFFFF !important;
+}
+
+.stTextInput input:focus {
+    border-color: #4A5C6A !important;
+    box-shadow: 0 0 0 2px rgba(74, 92, 106, 0.1) !important;
+    outline: none !important;
+}
+
+/* Estilo para inputs numéricos */
+.stNumberInput input[type="number"] {
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    transition: all 0.2s ease !important;
+    background-color: #021024 !important;
+    color: #FFFFFF !important;
+}
+
+.stNumberInput input[type="number"]:focus {
+    border-color: #4A5C6A !important;
+    box-shadow: 0 0 0 2px rgba(74, 92, 106, 0.1) !important;
+    outline: none !important;
+}
+
+/* Estilo para labels de selectbox - color negro visible */
+.stSelectbox label,
+.stSelectbox > label,
+div[data-baseweb="select"] label,
+.stSelectbox label p {
+    color: #000000 !important;
+    font-weight: 400 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ==================== CSS LOGIN  ====================
+LOGIN_CSS = """
+    
+    @keyframes slideDownFade {{
+        0% {{ opacity: 0; transform: translateY(-60px); }}
+        100% {{ opacity: 1; transform: translateY(0); }}
+    }}
+    
+    @keyframes slideUpFade {{
+        0% {{ opacity: 0; transform: translateY(40px); }}
+        100% {{ opacity: 1; transform: translateY(0); }}
+    }}
+    
+    @keyframes shimmerLine {{
+        0% {{ width: 0; opacity: 0; }}
+        50% {{ opacity: 1; }}
+        100% {{ width: 80px; opacity: 0.6; }}
+    }}
+    
+    @keyframes fadeInImage {{
+        0% {{ opacity: 0; transform: scale(1.03); }}
+        100% {{ opacity: 1; transform: scale(1); }}
+    }}
+    
+    /* Logo animado */
+    .login-logo-animated {{
+        animation: slideDownFade 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        padding: 0 0 1rem 0;
+    }}
+    
+    .login-logo-animated h1 {{
+        font-family: 'DM Sans', 'Montserrat', sans-serif !important;
+        font-size: 4.5rem !important;
+        font-weight: 800 !important;
+        color: #2D3436 !important;
+        letter-spacing: 8px !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+    }}
+    
+    .login-logo-animated .logo-subtitle {{
+        font-family: 'DM Sans', 'Montserrat', sans-serif;
+        font-size: 1rem;
+        font-weight: 400;
+        color: #636E72;
+        letter-spacing: 2px;
+        margin-top: 0.4rem;
+    }}
+    
+    .login-logo-animated .logo-line {{
+        height: 3px;
+        background: linear-gradient(90deg, #4A5C6A, #9BA8AB);
+        margin-top: 0.8rem;
+        border-radius: 2px;
+        animation: shimmerLine 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s both;
+    }}
+    
+    /* Campos animados */
+    .login-fields-wrapper {{
+        animation: slideUpFade 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s both;
+    }}
+
+    /* Panel de imagen derecho - COMO BACKGROUND CSS */
+    .login-image-panel {{
+        animation: fadeInImage 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+        background-image: url("data:{mime};base64,{img_b64}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: 16px;
+        min-height: 550px;
+        height: 78vh;
+        max-height: 700px;
+        width: 100%;
+    }}
+    
+    /* Fallback sin imagen */
+    .login-image-fallback {{
+        animation: fadeInImage 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+        background: linear-gradient(135deg, #4A5C6A 0%, #2D3436 50%, #636E72 100%);
+        border-radius: 16px;
+        min-height: 550px;
+        height: 78vh;
+        max-height: 700px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }}
+"""
+
+# ==================== CSS PERSONALIZADO (DESDE CÓDIGO 9) ====================
+st.markdown("""
+<style>
+    /* Variables de color - Nueva paleta */
+    :root {
+        --primary-dark: #4A5C6A;        /* Negro de la paleta */
+        --secondary-gray: #9BA8AB;       /* Gris de la paleta */
+        --background-light: #F5F5F5;      /* Fondo claro */
+        --text-dark: #333333;             /* Texto oscuro */
+        --text-light: #FFFFFF;             /* Texto claro */
+        --text-black: #000000;             /* Texto negro para datos de tabla */
+        --accent-color: #4A5C6A;           /* Color de acento */
+        --border-color: #E0E0E0;            /* Color de bordes */
+        --label-color: #000000;             /* Color negro para labels */
+        --warning-bg: #fef7e0;               /* Fondo amarillo suave para alertas */
+        --warning-border: #f1c40f;           /* Borde amarillo para alertas */
+        --table-header-bg: #9BA8AB;          /* Gris para cabecera de tabla */
+        --table-border: #D0D7DD;              /* Borde sutil para tabla */
+        --table-row-hover: #F0F2F5;           /* Hover suave para filas */
+        --success-color: #28a745;            /* Verde para éxito */
+        --danger-color: #dc3545;              /* Rojo para peligro */
+        --warning-color: #ffc107;              /* Amarillo para advertencia */
+        --placeholder-color: #9BA8AB;          /* Color para placeholder tipo Yape */
+        --input-bg: #021024;                   /* Nuevo color de fondo para inputs */
+        --input-text: #FFFFFF;                  /* Color de texto para inputs */
+    }
+
+    /* Fondo principal */
+    .stApp {
+        background-color: var(--background-light);
+    }
+
+    /* Sidebar con nuevo color */
+    section[data-testid="stSidebar"] {
+        background-color: var(--primary-dark) !important;
+    }
+
+    /* ===== TODOS LOS TEXTOS EN SIDEBAR EN NEGRO ===== */
+    section[data-testid="stSidebar"] .stMarkdown,
+    section[data-testid="stSidebar"] .stMarkdown p,
+    section[data-testid="stSidebar"] .stMarkdown span,
+    section[data-testid="stSidebar"] .stMarkdown h1,
+    section[data-testid="stSidebar"] .stMarkdown h2,
+    section[data-testid="stSidebar"] .stMarkdown h3,
+    section[data-testid="stSidebar"] .stMarkdown h4,
+    section[data-testid="stSidebar"] .stMarkdown h5,
+    section[data-testid="stSidebar"] .stMarkdown h6,
+    section[data-testid="stSidebar"] .stSubheader,
+    section[data-testid="stSidebar"] .stCaption,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] div,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4,
+    section[data-testid="stSidebar"] h5,
+    section[data-testid="stSidebar"] h6 {
+        color: #000000 !important;
+    }
+    
+    section[data-testid="stSidebar"] .stSelectbox label,
+    section[data-testid="stSidebar"] .stNumberInput label,
+    section[data-testid="stSidebar"] .stTextInput label {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
+
+    section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] span {
+        color: #000000 !important;
+    }
+
+    /* Estilo para el contenedor del logo en el sidebar */
+    .sidebar-logo-container {
+        text-align: center;
+        padding: 1.5rem 0.5rem;
+        margin-bottom: 1rem;
+        background-color: rgba(255,255,255,0.05);
+        border-radius: 8px;
+    }
+    
+    .sidebar-logo-container img {
+        max-width: 100%;
+        height: auto;
+        filter: brightness(0) invert(1); /* Esto hace que la imagen se vuelva blanca */
+        transition: all 0.3s ease;
+    }
+    
+    .sidebar-logo-container img:hover {
+        transform: scale(1.02);
+    }
+
+    section[data-testid="stSidebar"] .stButton > button {
+        background-color: var(--secondary-gray) !important;
+        color: var(--text-dark) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+    }
+
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background-color: #8A979A !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .main-container {
+        background-color: var(--background-light);
+        padding: 2rem;
+        border-radius: 12px;
+    }
+
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 70vh;
+        padding: 1rem;
+        margin-top: -2rem;
+    }
+
+    .login-logo {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .login-logo h1 {
+        color: var(--primary-dark);
+        font-size: 3.5rem;
+        font-weight: 300;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .login-logo p {
+        color: var(--secondary-gray);
+        font-size: 1rem;
+        letter-spacing: 3px;
+        margin: 0;
+        text-transform: uppercase;
+    }
+
+    .login-title {
+        text-align: center;
+        color: var(--primary-dark);
+        font-size: 1.8rem;
+        font-weight: 300;
+        margin-bottom: 2rem;
+        letter-spacing: 2px;
+        border-bottom: 2px solid var(--secondary-gray);
+        padding-bottom: 0.5rem;
+        display: inline-block;
+    }
+
+    /* ===== ESTILOS PARA INPUTS NUMÉRICOS TIPO YAPE/BCP ===== */
+    /* Ocultar los botones de incremento/decremento */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        margin: 0 !important;
+        display: none !important;
+    }
+    
+    input[type="number"] {
+        -moz-appearance: textfield !important;
+        appearance: textfield !important;
+    }
+    
+    /* Estilo para inputs numéricos con placeholder difuminado */
+    .stNumberInput input[type="number"] {
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        padding: 0.75rem !important;
+        font-size: 1rem !important;
+        transition: all 0.2s ease !important;
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+    }
+    
+    .stNumberInput input[type="number"]:focus {
+        border-color: var(--primary-dark) !important;
+        box-shadow: 0 0 0 2px rgba(74, 92, 106, 0.1) !important;
+        outline: none !important;
+    }
+    
+    /* Placeholder difuminado para inputs numéricos */
+    .stNumberInput input[type="number"]::placeholder {
+        color: var(--placeholder-color) !important;
+        opacity: 0.7 !important;
+        font-weight: 300 !important;
+    }
+    
+    /* Cuando el input tiene valor 0, mostrar el placeholder */
+    .stNumberInput input[type="number"][value="0"]::placeholder,
+    .stNumberInput input[type="number"]:invalid::placeholder {
+        color: var(--placeholder-color) !important;
+        opacity: 0.7 !important;
+    }
+    
+    /* Estilo específico para campos de monto */
+    input[placeholder="0"]::placeholder {
+        color: var(--placeholder-color) !important;
+        opacity: 0.7 !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Para los inputs que no tienen placeholder nativo, usamos una técnica con pseudo-elementos */
+    .stNumberInput {
+        position: relative;
+    }
+    
+    /* Efecto de enfoque suave */
+    .stNumberInput input[type="number"]:hover {
+        border-color: var(--secondary-gray) !important;
+    }
+    
+    /* Mantener consistencia con otros inputs */
+    .stTextInput > div > div > input {
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        padding: 0.75rem !important;
+        font-size: 1rem !important;
+        background-color: var(--input-bg) !important;
+        color: var(--input-text) !important;
+    }
+
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus {
+        border-color: var(--primary-dark) !important;
+        box-shadow: 0 0 0 2px rgba(74, 92, 106, 0.1) !important;
+    }
+
+    /* ===== CORRECCIÓN: TEXTO BLANCO EN SELECTBOX ===== */
+    .stSelectbox div[data-baseweb="select"] span {
+        color: #FFFFFF !important;
+    }
+    
+    .stSelectbox div[data-baseweb="select"] div {
+        color: #FFFFFF !important;
+    }
+    
+    /* Para el texto seleccionado dentro del selectbox */
+    .stSelectbox div[data-baseweb="select"] [role="button"] {
+        color: #FFFFFF !important;
+    }
+
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+    .stMarkdown h4, .stMarkdown h5, .stMarkdown h6,
+    .stMarkdown p, .stMarkdown span,
+    label, .stTextInput label, .stSelectbox label,
+    .stNumberInput label, .stSlider label {
+        color: var(--label-color) !important;
+        font-weight: 500 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: var(--label-color) !important;
+    }
+
+    .stMarkdown h4, .stMarkdown h5 {
+        color: var(--label-color) !important;
+        font-weight: 600 !important;
+    }
+
+    /* ===== REDUCCIÓN DE TAMAÑO PARA TODO EL CONTENIDO DEL EXPANDER ===== */
+    /* Ajuste del padding y min-height de la barra del expander */
+    div[data-testid="stExpander"] details summary {
+        padding: 0.2rem 1rem !important;
+        min-height: 0px !important;
+    }
+    
+    /* Título del expander con la campana */
+    div[data-testid="stExpander"] summary p,
+    div[data-testid="stExpander"] summary span {
+        font-size: 13px !important;
+    }
+    
+    /* El texto de alerta "Ver Solicitud(es) Pendiente(s)" */
+    div[data-testid="stExpander"] .stAlert p {
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+        margin: 2px 0 !important;
+    }
+    
+    /* Todos los textos dentro del expander */
+    div[data-testid="stExpander"] p,
+    div[data-testid="stExpander"] span,
+    div[data-testid="stExpander"] div,
+    div[data-testid="stExpander"] .stMarkdown p {
+        font-size: 13px !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Texto de fechas y montos */
+    div[data-testid="stExpander"] div:has(> p:contains("→")),
+    div[data-testid="stExpander"] p:contains("→"),
+    div[data-testid="stExpander"] p:contains("S/.") {
+        font-size: 12px !important;
+    }
+    
+    /* Texto "Solicitado por:" */
+    div[data-testid="stExpander"] p:contains("Solicitado por") {
+        font-size: 12px !important;
+        color: #000000 !important;
+    }
+    
+    /* Botones dentro del expander */
+    div[data-testid="stExpander"] .stButton button {
+        font-size: 12px !important;
+        padding: 2px 10px !important;
+    }
+
+    /* TEXTO DE FECHAS EN HISTORIAL - TAMAÑO PEQUEÑO COMO EN FOTO 1 */
+    div[data-testid="stExpander"] .stMarkdown p,
+    div[data-testid="stExpander"] .stMarkdown span,
+    div[data-testid="stExpander"] p,
+    div[data-testid="stExpander"] span,
+    div[data-testid="stExpander"] li,
+    div[data-testid="stExpander"] ul li,
+    div[data-testid="stExpander"] ol li {
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+        margin: 0.1rem 0 !important;
+        color: #000000 !important;
+    }
+
+    /* TEXTO "Solicitado por:" - TAMAÑO PEQUEÑO */
+    div[data-testid="stExpander"] div:contains("Solicitado por"),
+    div[data-testid="stExpander"] span:contains("Solicitado por"),
+    div[data-testid="stExpander"] p:contains("Solicitado por") {
+        color: #000000 !important;
+        font-size: 12px !important;
+    }
+
+    /* Reducir el tamaño del texto en los títulos de los expansores */
+    div[data-testid="stExpander"] details summary span,
+    div[data-testid="stExpander"] details summary p {
+        font-size: 13px !important;
+    }
+
+    /* El contenedor principal del expander */
+    div[data-testid="stExpander"] {
+        background-color: white !important;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* ALERTA AMARILLA - Corregir texto amarillo sobre fondo amarillo */
+    div[data-testid="stExpander"] .stAlert,
+    div[data-testid="stExpander"] div[data-baseweb="notification"],
+    div[data-testid="stExpander"] div[role="alert"],
+    div[data-testid="stExpander"] .st-emotion-cache-1gulkj5,
+    .stAlert[data-baseweb="notification"][kind="warning"],
+    div[data-testid="stAlert"] {
+        background-color: var(--warning-bg) !important;
+        border-left-color: var(--warning-border) !important;
+        padding: 0.4rem !important;
+    }
+
+    /* El texto que acompaña al triángulo de advertencia */
+    div[data-testid="stExpander"] .stAlert span,
+    div[data-testid="stExpander"] .stAlert p,
+    div[data-testid="stExpander"] div[role="alert"] span,
+    div[data-testid="stExpander"] div[role="alert"] p,
+    div[data-testid="stExpander"] .st-emotion-cache-1gulkj5 span,
+    div[data-testid="stExpander"] .st-emotion-cache-1gulkj5 p,
+    .stAlert[data-baseweb="notification"][kind="warning"] span,
+    .stAlert[data-baseweb="notification"][kind="warning"] p,
+    div[data-testid="stAlert"] span,
+    div[data-testid="stAlert"] p {
+        color: #000000 !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+    }
+
+    /* El ícono de advertencia (triángulo) mantiene su color amarillo */
+    div[data-testid="stExpander"] .stAlert svg,
+    div[data-testid="stExpander"] div[role="alert"] svg,
+    div[data-testid="stExpander"] .st-emotion-cache-1gulkj5 svg,
+    .stAlert[data-baseweb="notification"][kind="warning"] svg {
+        color: var(--warning-border) !important;
+        width: 1rem !important;
+        height: 1rem !important;
+    }
+
+    /* BARRA DE LA CAMPANA - Texto dinámico según fondo */
+    /* Cuando el expander está CERRADO - fondo oscuro */
+    div[data-testid="stExpander"] details:not([open]) summary,
+    div[data-testid="stExpander"] details:not([open]) summary span,
+    div[data-testid="stExpander"] details:not([open]) summary p,
+    div[data-testid="stExpander"] details:not([open]) summary div,
+    div[data-testid="stExpander"] details:not([open]) summary .stMarkdown,
+    div[data-testid="stExpander"] details:not([open]) summary .stMarkdown p,
+    div[data-testid="stExpander"] details:not([open]) summary .stMarkdown span {
+        background-color: var(--primary-dark) !important;
+        color: #FFFFFF !important;
+        padding: 0.2rem 1rem !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+    }
+
+    /* Cuando el expander está ABIERTO - fondo claro */
+    div[data-testid="stExpander"] details[open] summary,
+    div[data-testid="stExpander"] details[open] summary span,
+    div[data-testid="stExpander"] details[open] summary p,
+    div[data-testid="stExpander"] details[open] summary div,
+    div[data-testid="stExpander"] details[open] summary .stMarkdown,
+    div[data-testid="stExpander"] details[open] summary .stMarkdown p,
+    div[data-testid="stExpander"] details[open] summary .stMarkdown span {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        padding: 0.2rem 1rem !important;
+        border-bottom: 2px solid var(--border-color) !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+    }
+
+    /* Icono de la campana 🔔 */
+    div[data-testid="stExpander"] summary:contains("🔔"),
+    div[data-testid="stExpander"] span:contains("🔔"),
+    div[data-testid="stExpander"] p:contains("🔔") {
+        margin-right: 6px !important;
+    }
+
+    /* TODO el contenido DENTRO del expander */
+    div[data-testid="stExpander"] *,
+    div[data-testid="stExpander"] .stMarkdown,
+    div[data-testid="stExpander"] .stMarkdown p,
+    div[data-testid="stExpander"] .stMarkdown span,
+    div[data-testid="stExpander"] .stMarkdown div,
+    div[data-testid="stExpander"] .stMarkdown h1,
+    div[data-testid="stExpander"] .stMarkdown h2,
+    div[data-testid="stExpander"] .stMarkdown h3,
+    div[data-testid="stExpander"] .stMarkdown h4,
+    div[data-testid="stExpander"] .stMarkdown h5,
+    div[data-testid="stExpander"] .stMarkdown h6,
+    div[data-testid="stExpander"] p,
+    div[data-testid="stExpander"] span,
+    div[data-testid="stExpander"] div,
+    div[data-testid="stExpander"] h1,
+    div[data-testid="stExpander"] h2,
+    div[data-testid="stExpander"] h3,
+    div[data-testid="stExpander"] h4,
+    div[data-testid="stExpander"] h5,
+    div[data-testid="stExpander"] h6,
+    div[data-testid="stExpander"] strong,
+    div[data-testid="stExpander"] b,
+    div[data-testid="stExpander"] em,
+    div[data-testid="stExpander"] small,
+    div[data-testid="stExpander"] .stCaption,
+    div[data-testid="stExpander"] .stCaption p,
+    div[data-testid="stExpander"] .stCaption span {
+        color: #000000 !important;
+    }
+
+    /* Elementos específicos dentro del expander */
+    div[data-testid="stExpander"] div[data-testid="column"],
+    div[data-testid="stExpander"] div[data-testid="column"] p,
+    div[data-testid="stExpander"] div[data-testid="column"] span,
+    div[data-testid="stExpander"] div[data-testid="column"] div,
+    div[data-testid="stExpander"] .st-cb,
+    div[data-testid="stExpander"] .st-bb,
+    div[data-testid="stExpander"] .st-be,
+    div[data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
+        color: #000000 !important;
+    }
+
+    /* Asegurar que los botones dentro del expander mantengan su estilo */
+    div[data-testid="stExpander"] .stButton > button {
+        color: #FFFFFF !important;
+        font-size: 12px !important;
+        padding: 0.2rem 0.5rem !important;
+    }
+
+    /* Mantener consistencia en todos los estados */
+    div[data-testid="stExpander"] .stButton > button[kind="primary"] {
+        background-color: var(--primary-dark) !important;
+        color: #FFFFFF !important;
+    }
+
+    div[data-testid="stExpander"] .stButton > button[kind="secondary"] {
+        background-color: var(--secondary-gray) !important;
+        color: #000000 !important;
+    }
+
+    /* Botones principales fuera del expander */
+    .stButton > button {
+        background-color: var(--primary-dark) !important;
+        color: var(--text-light) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .stButton > button:hover {
+        background-color: #5A6C7A !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 92, 106, 0.2);
+    }
+
+    section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background-color: var(--secondary-gray) !important;
+        color: var(--text-dark) !important;
+    }
+
+    h1, h2, h3 {
+        color: var(--primary-dark) !important;
+        font-weight: 300 !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: var(--primary-dark) !important;
+        font-size: 2rem !important;
+        font-weight: 300 !important;
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: var(--secondary-gray) !important;
+        font-weight: 400 !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: white;
+        padding: 0.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        color: var(--secondary-gray) !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 1rem !important;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: var(--primary-dark) !important;
+        color: var(--text-light) !important;
+    }
+
+    /* DataFrames - Estilo general */
+    .stDataFrame {
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        overflow: hidden;
+    }
+
+    .stDataFrame th {
+        background-color: var(--primary-dark) !important;
+        color: var(--text-light) !important;
+        font-weight: 400 !important;
+    }
+
+    /* ===== ESTILOS PERSONALIZADOS PARA TABLA DE PARTIDAS ===== */
+    /* Tabla profesional con bordes sutiles */
+    .partidas-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+        border: 1px solid var(--table-border);
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .partidas-table th {
+        background-color: var(--table-header-bg);
+        color: white !important;
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--table-border);
+    }
+    
+    .partidas-table td {
+        padding: 0.4rem 0.75rem;
+        border-bottom: 1px solid var(--table-border);
+        background-color: white;
+        color: #000000 !important;
+        vertical-align: middle;
+    }
+    
+    .partidas-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .partidas-table tr:hover td {
+        background-color: var(--table-row-hover);
+    }
+    
+    /* Contenedor de acciones con flexbox */
+    .acciones-container {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-start;
+        white-space: nowrap;
+    }
+    
+    /* Estado badge */
+    .estado-badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background-color: #e8f5e9;
+        color: #2e7d32 !important;
+    }
+    
+    .estado-badge.pendiente {
+        background-color: #fff3e0;
+        color: #ef6c00 !important;
+    }
+    
+    /* Estilo para los botones de acción en la tabla */
+    div[data-testid="column"] .stButton button {
+        min-width: 35px !important;
+        padding: 0.2rem 0.3rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Fila de tabla personalizada */
+    .tabla-fila {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tabla-fila:hover {
+        background-color: var(--table-row-hover);
+    }
+    
+    .tabla-celda {
+        padding: 0 0.5rem;
+    }
+
+    /* Progress bars */
+    .stProgress > div > div > div > div {
+        background-color: var(--primary-dark) !important;
+    }
+
+    /* Alerts generales */
+    .stAlert {
+        border-radius: 8px !important;
+        border-left: 4px solid var(--primary-dark) !important;
+    }
+
+    /* Dividers */
+    hr {
+        border-color: var(--border-color) !important;
+        margin: 2rem 0 !important;
+    }
+
+    /* Selectbox en sidebar - texto NEGRO */
+    section[data-testid="stSidebar"] .stSelectbox > div > div {
+        background-color: rgba(255,255,255,0.1) !important;
+        border: 1px solid var(--secondary-gray) !important;
+        border-radius: 6px !important;
+    }
+
+    section[data-testid="stSidebar"] .stSelectbox select {
+        color: #000000 !important;
+    }
+
+    /* Números en sidebar - texto NEGRO */
+    section[data-testid="stSidebar"] .stNumberInput input {
+        color: #000000 !important;
+    }
+
+    /* Estilo específico para la sección de Mano de Obra */
+    .mo-section {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        margin: 1rem 0;
+    }
+
+    .mo-section h4 {
+        color: var(--label-color) !important;
+        font-weight: 600 !important;
+        margin-bottom: 1rem;
+    }
+
+    .mo-section label {
+        color: var(--label-color) !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Estilo para botones pequeños de acción */
+    .stButton button[kind="secondary"] {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 1rem !important;
+        min-width: 40px !important;
+    }
+    
+    /* Botones de acción en la tabla */
+    .action-button {
+        background: none !important;
+        border: none !important;
+        padding: 0.2rem 0.3rem !important;
+        font-size: 1.1rem !important;
+        cursor: pointer !important;
+        min-width: auto !important;
+        width: auto !important;
+        display: inline-block !important;
+        color: #333 !important;
+    }
+    
+    .action-button:hover {
+        transform: scale(1.2);
+        background: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Raíz del proyecto (robusto ante ejecución desde otro directorio)
 BASE_DIR = Path(__file__).resolve().parent
@@ -85,58 +968,41 @@ BASE_DIR = Path(__file__).resolve().parent
 def _path(*parts: str) -> str:
     return str(BASE_DIR.joinpath(*parts))
 
-def mostrar_logo_dinamico():
+def mostrar_logo_con_imagen():
     """
-    Muestra el logo apropiado según el tema usando CSS media queries.
-    En modo claro: muestra logo_dark.png (logo oscuro/negro)
-    En modo oscuro: muestra logo.png (logo claro/blanco)
+    Muestra el logo de la empresa BOSS usando la imagen del archivo
     """
-    logo_dark = _path("img", "logo_dark.png")
-    logo_light = _path("img", "logo.png")
+    # Buscar el logo blanco en diferentes formatos posibles
+    logo_paths = [
+        _path("img", "logo.png"),          # logo.png
+        _path("img", "logo_dark.png"),      # logo_dark.png
+        _path("img", "BOSS_logo.png"),      # BOSS_logo.png
+        _path("img", "logo_blanco.png"),    # logo_blanco.png
+    ]
     
-    if not os.path.exists(logo_light) or not os.path.exists(logo_dark):
-        # Si falta alguno, mostrar el que existe
-        if os.path.exists(logo_light):
-            st.image(logo_light, use_container_width=True)
-        elif os.path.exists(logo_dark):
-            st.image(logo_dark, use_container_width=True)
-        return
+    for logo_path in logo_paths:
+        if os.path.exists(logo_path):
+            # Mostrar logo con estilo mejorado
+            st.markdown(
+                f"""
+                <div class="sidebar-logo-container">
+                    <img src="data:image/png;base64,{_get_image_base64(logo_path)}" alt="BOSS Logo">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            return
     
-    # Usar HTML con media queries para cambiar entre logos
-    st.markdown(
-        f"""
-        <style>
-            .logo-container {{
-                display: flex;
-                justify-content: center;
-                width: 100%;
-            }}
-            .logo-light {{
-                display: block;
-            }}
-            .logo-dark {{
-                display: none;
-            }}
-            @media (prefers-color-scheme: light) {{
-                .logo-light {{
-                    display: none;
-                }}
-                .logo-dark {{
-                    display: block;
-                }}
-            }}
-        </style>
-        <div class="logo-container">
-            <img class="logo-light" src="data:image/png;base64,{_get_image_base64(logo_light)}" style="max-width: 100%; height: auto;" />
-            <img class="logo-dark" src="data:image/png;base64,{_get_image_base64(logo_dark)}" style="max-width: 100%; height: auto;" />
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Si no hay logo, mostrar texto como fallback
+    st.markdown("""
+    <div class="sidebar-logo-container">
+        <h1 style="color: white; font-size: 2.5rem; margin: 0;">BOSS</h1>
+        <p style="color: rgba(255,255,255,0.8); margin: 0;">Building Operator System</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 def _get_image_base64(image_path: str) -> str:
     """Convierte una imagen a base64 para uso en HTML."""
-    import base64
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
@@ -181,7 +1047,9 @@ from modules.logic import (
 from modules.database import (
     cargar_obras,
     agregar_obra,
+    guardar_datos_obra,
     agregar_avance,
+    limpiar_avances_obra,
     cargar_insumos,
     agregar_insumo,
     actualizar_insumo,
@@ -215,15 +1083,6 @@ from modules.database import (
 def _norm_txt(s: str) -> str:
     s = str(s or "").strip().lower()
     return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
-
-def _map_freq(label: str) -> str:
-    """Mapea etiquetas UI a códigos internos."""
-    t = str(label or "").strip().lower()
-    if t.startswith("d"):
-        return "D"  # Diario
-    if t.startswith("m"):
-        return "M"  # Mensual
-    return "W"      # Semanal (default)
 
 def _freq_label(code: str) -> str:
     return {"D": "Diario", "W": "Semanal", "M": "Mensual"}.get(code, "Semanal")
@@ -283,11 +1142,16 @@ def _resample_sum(df: pd.DataFrame, freq_code: str) -> pd.DataFrame:
     out.index = out.index.normalize()
     return out
 
-def _build_plan_df(crono_items: list, freq_code: str) -> pd.DataFrame:
+def _build_plan_df(crono_items: list, freq_code: str, filtro_partida: str = None) -> pd.DataFrame:
     """
     Construye PV por periodo desde cronograma:
     distribuye monto_planificado uniforme entre días [inicio..fin].
     Retorna columns: fecha, plan_dia
+    
+    Args:
+        crono_items: Lista de partidas del cronograma
+        freq_code: Código de frecuencia para agrupar
+        filtro_partida: Nombre de partida para filtrar (None = todas)
     """
     if not crono_items:
         return pd.DataFrame(columns=["fecha", "plan_dia"])
@@ -295,6 +1159,12 @@ def _build_plan_df(crono_items: list, freq_code: str) -> pd.DataFrame:
     series = pd.Series(dtype="float64")
 
     for it in crono_items:
+        # Filtrar por partida si se especifica
+        if filtro_partida:
+            nombre_partida = it.get("nombre", "")
+            if _norm_txt(nombre_partida) != _norm_txt(filtro_partida):
+                continue
+        
         s = _parse_ts(it.get("fecha_inicio"))
         e = _parse_ts(it.get("fecha_fin"))
         try:
@@ -349,16 +1219,27 @@ def _extract_total_from_avance(av: dict) -> float:
 
     return 0.0
 
-def _build_real_df(avances: list, freq_code: str) -> pd.DataFrame:
+def _build_real_df(avances: list, freq_code: str, filtro_partida: str = None) -> pd.DataFrame:
     """
     Construye AC por periodo desde avances (partes diarios).
     Retorna columns: fecha, real_dia
+    
+    Args:
+        avances: Lista de partes diarios
+        freq_code: Código de frecuencia para agrupar
+        filtro_partida: Nombre de partida para filtrar (None = todas)
     """
     if not avances:
         return pd.DataFrame(columns=["fecha", "real_dia"])
 
     rows = []
     for av in avances:
+        # Filtrar por partida si se especifica
+        if filtro_partida:
+            nombre_en_avance = av.get("nombre_partida", "")
+            if _norm_txt(nombre_en_avance) != _norm_txt(filtro_partida):
+                continue
+        
         f = av.get("fecha") or av.get("Fecha") or av.get("date")
         ts = _parse_ts(f)
         if ts is None:
@@ -378,7 +1259,7 @@ def _build_real_df(avances: list, freq_code: str) -> pd.DataFrame:
 
 def render_curva_s(cronograma_all: list, avances: list, rol: str = "jefe"):
     """
-    Renderiza Curva S sin selector visible (vista automática).
+    Renderiza Curva S con opción de filtrar por partida individual.
     - JEFE: Plan = Aprobado; Real = partes diarios.
     - PASANTE: además muestra Plan (Pendiente - borrador) para que "vea algo" incluso si aún no aprueban.
     """
@@ -393,6 +1274,33 @@ def render_curva_s(cronograma_all: list, avances: list, rol: str = "jefe"):
     cron_aprob = [it for it in cronograma_all if it.get("estado") == "Aprobado"]
     cron_pend = [it for it in cronograma_all if it.get("estado") != "Aprobado"]
 
+    # ===== SELECTOR DE PARTIDA =====
+    st.markdown("#### 🔍 Filtrar por Partida")
+    
+    # Construir opciones del selectbox
+    opciones_partidas = ["🏗️ PROYECTO COMPLETO (todas las partidas)"]
+    
+    # Agregar partidas aprobadas
+    if cron_aprob:
+        opciones_partidas.extend([f"📋 {item.get('nombre', 'Sin nombre')}" for item in cron_aprob])
+    
+    # Selector de partida
+    st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: black;"><strong>Selecciona qué partida analizar:</strong></p>', unsafe_allow_html=True)
+    partida_seleccionada = st.selectbox(
+        "Selecciona partida",
+        opciones_partidas,
+        key="filtro_partida_curva_s",
+        label_visibility="collapsed"
+    )
+    
+    # Determinar filtro
+    filtro_partida = None
+    if not partida_seleccionada.startswith("🏗️"):
+        # Extraer nombre sin el emoji y prefijo
+        filtro_partida = partida_seleccionada.replace("📋 ", "").strip()
+    
+    st.divider()
+    
     # Vista automática (pero con opción avanzada opcional)
     freq_code = _autofreq_from_cronograma(cron_aprob or cron_pend)
     st.caption(f"Vista automática: {_freq_label(freq_code)}")
@@ -411,19 +1319,23 @@ def render_curva_s(cronograma_all: list, avances: list, rol: str = "jefe"):
     if not cron_aprob and cron_pend and rol == "pasante":
         st.info("Tus partidas están Pendientes. Se mostrará 'Plan (Pendiente - borrador)' hasta que el JEFE apruebe.")
 
-    plan_df = _build_plan_df(cron_aprob, freq_code)
-    real_df = _build_real_df(avances, freq_code)
+    # Construir dataframes con filtro de partida
+    plan_df = _build_plan_df(cron_aprob, freq_code, filtro_partida)
+    real_df = _build_real_df(avances, freq_code, filtro_partida)
 
     borr_df = pd.DataFrame(columns=["fecha", "plan_pend_dia"])
     if rol == "pasante" and cron_pend:
-        tmp = _build_plan_df(cron_pend, freq_code)
+        tmp = _build_plan_df(cron_pend, freq_code, filtro_partida)
         if not tmp.empty:
             borr_df = tmp.rename(columns={"plan_dia": "plan_pend_dia"})
 
     # Si no hay nada, informar claro
     has_any = (not plan_df.empty) or (not real_df.empty) or (rol == "pasante" and not borr_df.empty)
     if not has_any:
-        st.info("No hay datos suficientes para graficar. Debes tener: (a) cronograma aprobado y/o (b) partes diarios con costos.")
+        if filtro_partida:
+            st.warning(f"⚠️ No hay datos para la partida '{filtro_partida}'. Verifica que existan partes diarios registrados para esta partida.")
+        else:
+            st.info("No hay datos suficientes para graficar. Debes tener: (a) cronograma aprobado y/o (b) partes diarios con costos.")
         return
 
     # Merge y acumulados
@@ -449,11 +1361,18 @@ def render_curva_s(cronograma_all: list, avances: list, rol: str = "jefe"):
         df["plan_pend_dia"] = 0.0
 
     out = pd.DataFrame(index=df.index)
-    out["Plan (Aprobado)"] = df["plan_dia"].cumsum()
-    out["Real (Partes diarios)"] = df["real_dia"].cumsum()
-
-    if rol == "pasante":
-        out["Plan (Pendiente - borrador)"] = df["plan_pend_dia"].cumsum()
+    
+    # Ajustar nombres de columnas según filtro
+    if filtro_partida:
+        out[f"Plan: {filtro_partida}"] = df["plan_dia"].cumsum()
+        out[f"Real: {filtro_partida}"] = df["real_dia"].cumsum()
+        if rol == "pasante":
+            out[f"Plan Pendiente: {filtro_partida}"] = df["plan_pend_dia"].cumsum()
+    else:
+        out["Plan (Aprobado)"] = df["plan_dia"].cumsum()
+        out["Real (Partes diarios)"] = df["real_dia"].cumsum()
+        if rol == "pasante":
+            out["Plan (Pendiente - borrador)"] = df["plan_pend_dia"].cumsum()
 
     st.line_chart(out, use_container_width=True)
 
@@ -464,7 +1383,8 @@ def render_curva_s(cronograma_all: list, avances: list, rol: str = "jefe"):
         if rol == "pasante" and "plan_pend_dia" in df.columns:
             det["plan_pend_acum"] = df["plan_pend_dia"].cumsum()
         st.dataframe(det.reset_index(), use_container_width=True, hide_index=True)
-        # ==================== HELPERS KPI  ====================
+
+# ==================== HELPERS KPI ====================
 
 # Crear carpeta si no existe (no toca tu database)
 for folder in ["obras_kpi"]:
@@ -535,68 +1455,6 @@ def calcular_avance_real_total(avances: list) -> float:
             pass
     return float(total)
 
-def ui_kpi_dashboard(presupuesto_total: float, gasto_acumulado: float, avance_real_total: float, avance_programado: float):
-    pct_financiero = None
-    if presupuesto_total and float(presupuesto_total) > 0:
-        pct_financiero = (float(gasto_acumulado) / float(presupuesto_total)) * 100.0
-
-    color_fin, estado_fin = semaforo_presupuesto(pct_financiero)
-    color_tiempo, estado_tiempo = semaforo_tiempo(avance_real_total, float(avance_programado))
-
-    st.subheader("Tablero de Control (KPIs)")
-    col_kpi1, col_kpi2 = st.columns(2)
-
-    # === SEMÁFORO 1: FINANCIERO ===
-    with col_kpi1:
-        st.markdown("#### 💰 Control de Costos")
-        c1, c2 = st.columns(2)
-        c1.metric("Presupuesto Total", f"S/ {float(presupuesto_total):,.0f}" if float(presupuesto_total) > 0 else "—")
-        c2.metric("Gasto Ejecutado", f"S/ {float(gasto_acumulado):,.0f}")
-
-        if pct_financiero is not None:
-            st.progress(min(pct_financiero / 100, 1.0))
-
-        st.markdown(
-            f"""
-            <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;border-left: 6px solid {color_fin};background:rgba(0,0,0,0.2);">
-              <div>
-                <div style="font-size:12px;opacity:0.8;">RENTABILIDAD</div>
-                <div style="font-size:16px;font-weight:bold;color:{color_fin}">{estado_fin}</div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    # === SEMÁFORO 2: TIEMPO ===
-    with col_kpi2:
-        st.markdown("#### 📅 Control de Avance Físico")
-
-        if color_tiempo:
-            c1, c2 = st.columns(2)
-            c1.metric("Avance REAL", f"{float(avance_real_total):.1f}%")
-            delta_val = float(avance_real_total) - float(avance_programado)
-            c2.metric("Meta PROGRAMADA", f"{float(avance_programado):.1f}%", delta=f"{delta_val:.1f}% Diferencia")
-
-            st.progress(min(float(avance_real_total) / 100, 1.0))
-
-            st.markdown(
-                f"""
-                <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;border-left: 6px solid {color_tiempo};background:rgba(0,0,0,0.2);">
-                  <div>
-                    <div style="font-size:12px;opacity:0.8;">CUMPLIMIENTO DE PLAZOS</div>
-                    <div style="font-size:16px;font-weight:bold;color:{color_tiempo}">{estado_tiempo}</div>
-                    <div style="font-size:12px;margin-top:4px;">
-                       Real: <b>{float(avance_real_total):.1f}%</b> vs Prog: <b>{float(avance_programado):.1f}%</b>
-                    </div>
-                  </div>
-                </div>
-                """, unsafe_allow_html=True
-            )
-        else:
-            st.info("👈 Ingresa el 'Avance Programado' en la barra lateral para ver este semáforo.")
-
-
-
 # ==================== RESTRICCIÓN DE OBRAS POR PASANTE ====================
 # Ajusta aquí si en tu empresa cambian los usuarios o nombres
 PASANTE_OBRA_KEYWORDS = {
@@ -661,12 +1519,10 @@ def _get_drive_conf() -> Tuple[Optional[str], Optional[str]]:
     token = token or os.getenv("BOSS_TOKEN")
     return webapp_url, token
 
-
 def _safe_pdf_filename(s: str) -> str:
     s = str(s or "").strip()
     s = "".join(c for c in s if c.isalnum() or c in ["-", "_", "."])
     return s or "reporte.pdf"
-
 
 def _avance_to_pdf_bytes(obra_codigo: str, obra_nombre: str, avance: dict, rol: str) -> Optional[bytes]:
     """Convierte un avance (parte diario) a PDF (bytes)."""
@@ -681,12 +1537,24 @@ def _avance_to_pdf_bytes(obra_codigo: str, obra_nombre: str, avance: dict, rol: 
 
     partida = (avance or {}).get("partida") if isinstance((avance or {}).get("partida"), dict) else {}
     tot = (avance or {}).get("totales") if isinstance((avance or {}).get("totales"), dict) else {}
+    
+    # Extraer campos clave
+    nombre_partida = str((avance or {}).get("nombre_partida") or "")
+    descripcion_avance = str((avance or {}).get("descripcion_avance") or "")
+    observaciones = str((avance or {}).get("obs") or "")
+    avance_pct = (avance or {}).get("avance", 0)
+    cantidad_ejecutada = partida.get('cantidad_ejecutada', 0)
+    unidad = partida.get('unidad', '')
+    horas_jornal = partida.get("jornal_horas", 0)
 
     resumen_rows = [
-        ["Avance del día", f"{(avance or {}).get('avance', 0)} %"],
-        ["Partida", str(partida.get("nombre", ""))],
-        ["Cantidad ejecutada", f"{partida.get('cantidad_ejecutada', 0)} {partida.get('unidad', '')}".strip()],
-        ["Horas Hombre (HH)", str(partida.get("horas_hombre", 0))],
+        ["Avance del día (%)", f"{avance_pct} %"],
+        ["Partida", nombre_partida or "No especificada"],
+        ["Descripción del avance", descripcion_avance or "Sin descripción"],
+        ["Cantidad ejecutada", f"{cantidad_ejecutada} {unidad}".strip() or "0"],
+        ["Horas laborales (HH)", f"{horas_jornal}" or "0"],
+        ["Observaciones", observaciones or "Sin observaciones"],
+        ["", ""],  # Separador visual
         ["Total Mano de Obra (S/)", f"{float(tot.get('mano_de_obra', 0) or 0):,.2f}"],
         ["Total Materiales (S/)", f"{float(tot.get('materiales', 0) or 0):,.2f}"],
         ["Total Equipos (S/)", f"{float(tot.get('equipos', 0) or 0):,.2f}"],
@@ -760,7 +1628,6 @@ def _avance_to_pdf_bytes(obra_codigo: str, obra_nombre: str, avance: dict, rol: 
     except Exception as e:
         st.error(f"Error al generar PDF: {e}")
         return None
-
 
 def _render_pdf_panel():
     """Panel post-guardado para descargar/subir PDF."""
@@ -846,7 +1713,44 @@ def _render_pdf_panel():
 
 # ==================== CONFIGURACIÓN INICIAL ====================
 
-# ==================== AUTENTICACIÓN ====================
+# ==================== FUNCIÓN DE REDIMENSIONADO DE IMAGEN (DESDE CÓDIGO 8) ====================
+def _resize_image_for_login(img_path: str, max_width: int = 800) -> str:
+    """
+    Redimensiona la imagen a max_width px de ancho (mantiene proporción),
+    la convierte a JPEG con calidad 75, y retorna el base64 string.
+    Esto reduce drásticamente el tamaño del base64 para que Streamlit
+    no lo sanitice.
+    """
+    from io import BytesIO
+    
+    try:
+        from PIL import Image
+        
+        img = Image.open(img_path)
+        
+        # Redimensionar si es más ancha que max_width
+        if img.width > max_width:
+            ratio = max_width / img.width
+            new_height = int(img.height * ratio)
+            img = img.resize((max_width, new_height), Image.LANCZOS)
+        
+        # Convertir a RGB (por si es PNG con transparencia)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        # Guardar como JPEG en memoria
+        buffer = BytesIO()
+        img.save(buffer, format='JPEG', quality=75, optimize=True)
+        buffer.seek(0)
+        
+        return base64.b64encode(buffer.read()).decode()
+    
+    except ImportError:
+        # Si no tiene Pillow, usar archivo original
+        with open(img_path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+
+# ==================== AUTENTICACIÓN LOGIN (DESDE CÓDIGO 8 CON PORTADA ANIMADA) ====================
 def check_password():
     def password_entered():
         users = st.secrets.get("users", {}) if hasattr(st, "secrets") else {}
@@ -869,16 +1773,92 @@ def check_password():
             st.session_state["auth"] = False
 
     if "auth" not in st.session_state:
-        col1, col2, col3 = st.columns([2, 1, 2])
-        with col2:
-            mostrar_logo_dinamico()
-
-        col1, col2, col3 = st.columns([1, 4, 1])
-        with col2:
-            st.markdown("<h1 style='text-align:center;'>CONTROL DE OBRAS 2026</h1>", unsafe_allow_html=True)
-            st.text_input("Usuario", key="user")
-            st.text_input("Contraseña", type="password", key="password")
+        
+        # Buscar imagen
+        img_login_path = None
+        for ext in ["png", "jpg", "jpeg"]:
+            candidate = _path("img", f"img_login.{ext}")
+            if os.path.exists(candidate):
+                img_login_path = candidate
+                break
+        
+        # Preparar imagen base64 (redimensionada)
+        img_b64 = ""
+        mime = "image/jpeg"
+        has_image = False
+        
+        if img_login_path:
+            img_b64 = _resize_image_for_login(img_login_path, max_width=800)
+            has_image = bool(img_b64)
+            # Detectar MIME original (aunque redimensionamos a JPEG)
+            mime = "image/jpeg"
+        
+        # Inyectar CSS con imagen incrustada + Google Font
+        css_final = LOGIN_CSS.format(mime=mime, img_b64=img_b64)
+        
+        st.markdown(f"""
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <style>{css_final}</style>
+        """, unsafe_allow_html=True)
+        
+        # === LAYOUT: DOS COLUMNAS ===
+        col_left, col_right = st.columns([1, 1], gap="large")
+        
+        # --- COLUMNA IZQUIERDA: Logo + Campos ---
+        with col_left:
+            st.markdown("<div style='height: 8vh;'></div>", unsafe_allow_html=True)
+            
+            # Logo (baja desde arriba)
+            logo_path = _path("img", "logo_dark.png")
+            if not os.path.exists(logo_path):
+                logo_path = _path("img", "logo_dark.jpg")
+            
+            if os.path.exists(logo_path):
+                with open(logo_path, "rb") as f:
+                    logo_b64 = base64.b64encode(f.read()).decode()
+                ext = logo_path.split(".")[-1].lower()
+                logo_mime = "image/png" if ext == "png" else "image/jpeg"
+                
+                st.markdown(f"""
+                <div class="login-logo-animated">
+                    <img src="data:{logo_mime};base64,{logo_b64}" 
+                         alt="BOSS" 
+                         style="max-width: 280px; height: auto;" />
+                    <div class="logo-line"></div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Fallback: texto si no encuentra la imagen
+                st.markdown("""
+                <div class="login-logo-animated">
+                    <h1>BOSS</h1>
+                    <div class="logo-subtitle">Building Operator System</div>
+                    <div class="logo-line"></div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
+            
+            # Campos (suben desde abajo)
+            st.markdown('<div class="login-fields-wrapper">', unsafe_allow_html=True)
+            st.text_input("Usuario", key="user", placeholder="Ingresa tu usuario")
+            st.text_input("Contraseña", type="password", key="password", placeholder="Ingresa tu contraseña")
             st.button("INGRESAR", on_click=password_entered, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # --- COLUMNA DERECHA: Imagen como div con background ---
+        with col_right:
+            if has_image:
+                st.markdown('<div class="login-image-panel"></div>', unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="login-image-fallback">
+                    <span style="color:rgba(255,255,255,0.3);font-size:1rem;letter-spacing:2px;">
+                        img_login no encontrada en img/
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+        
         return False
 
     if not st.session_state["auth"]:
@@ -888,7 +1868,6 @@ def check_password():
 
 if not check_password():
     st.stop()
-
 
 # ==================== INICIALIZACIÓN DE SESSION STATE ====================
 # Inicializar variables de session_state si no existen
@@ -910,11 +1889,67 @@ if "pdf_bytes" not in st.session_state:
     st.session_state.pdf_bytes = None
 if "parte_enviado" not in st.session_state:
     st.session_state.parte_enviado = False
+if "insumos_eq_confirmados" not in st.session_state:
+    st.session_state.insumos_eq_confirmados = []
+if "insumos_otros_confirmados" not in st.session_state:
+    st.session_state.insumos_otros_confirmados = []
+if "mostrar_editor_empleado" not in st.session_state:
+    st.session_state.mostrar_editor_empleado = False
+if "empleado_editando" not in st.session_state:
+    st.session_state.empleado_editando = {}
+if "mostrar_confirmacion_eliminar" not in st.session_state:
+    st.session_state.mostrar_confirmacion_eliminar = False
+if "empleado_eliminar" not in st.session_state:
+    st.session_state.empleado_eliminar = {}
+# Variables para el modo de edición de partidas
+if "modo_edicion_partida" not in st.session_state:
+    st.session_state.modo_edicion_partida = False
+if "partida_editando_id" not in st.session_state:
+    st.session_state.partida_editando_id = None
+if "partida_editando_data" not in st.session_state:
+    st.session_state.partida_editando_data = None
+if "partida_eliminar_id" not in st.session_state:
+    st.session_state.partida_eliminar_id = None
+if "partida_eliminar_nombre" not in st.session_state:
+    st.session_state.partida_eliminar_nombre = ""
+if "mostrar_confirmacion_eliminar_partida" not in st.session_state:
+    st.session_state.mostrar_confirmacion_eliminar_partida = False
+# Variables para el modo de edición de hitos
+if "form_hito_counter" not in st.session_state:
+    st.session_state.form_hito_counter = 0
+if "modo_edicion_hito" not in st.session_state:
+    st.session_state.modo_edicion_hito = False
+if "hito_editando_id" not in st.session_state:
+    st.session_state.hito_editando_id = None
+if "hito_editando_data" not in st.session_state:
+    st.session_state.hito_editando_data = None
+if "hito_eliminar_id" not in st.session_state:
+    st.session_state.hito_eliminar_id = None
+if "hito_eliminar_descripcion" not in st.session_state:
+    st.session_state.hito_eliminar_descripcion = ""
+if "mostrar_confirmacion_eliminar_hito" not in st.session_state:
+    st.session_state.mostrar_confirmacion_eliminar_hito = False
+# Variables para el modo de edición de donaciones
+if "form_donacion_counter" not in st.session_state:
+    st.session_state.form_donacion_counter = 0
+if "modo_edicion_donacion" not in st.session_state:
+    st.session_state.modo_edicion_donacion = False
+if "donacion_editando_id" not in st.session_state:
+    st.session_state.donacion_editando_id = None
+if "donacion_editando_data" not in st.session_state:
+    st.session_state.donacion_editando_data = None
+if "donacion_eliminar_id" not in st.session_state:
+    st.session_state.donacion_eliminar_id = None
+if "donacion_eliminar_nombre" not in st.session_state:
+    st.session_state.donacion_eliminar_nombre = ""
+if "mostrar_confirmacion_eliminar_donacion" not in st.session_state:
+    st.session_state.mostrar_confirmacion_eliminar_donacion = False
+
 # ==================== INTERFAZ PRINCIPAL ====================
 # ==================== MODO JEFE ====================
 if st.session_state["auth"] == "jefe":
     with st.sidebar:
-        mostrar_logo_dinamico()
+        mostrar_logo_con_imagen()  # Aquí va el logo con la imagen
         st.divider()
 
         obras = cargar_obras()
@@ -946,8 +1981,21 @@ if st.session_state["auth"] == "jefe":
             st.session_state.obra_seleccionada = nuevo_codigo
             st.session_state.mostrar_form_obra = False
             st.session_state.mostrar_insumos = False
+            # Limpiar estados de gestión de empleados al cambiar de obra
+            st.session_state.mostrar_empleados_obra = False
+            st.session_state.mostrar_editor_empleado = False
+            st.session_state.mostrar_confirmacion_eliminar = False
+            if 'empleado_editando' in st.session_state:
+                del st.session_state.empleado_editando
+            if 'empleado_eliminar' in st.session_state:
+                del st.session_state.empleado_eliminar
             st.rerun()
-                    # ==================== KPI: Avance Programado ====================
+         # ==================== BOTÓN DE REPORTES EN SIDEBAR ====================
+        st.subheader("Reports")
+        if st.button("📊 Ver Reportes de Asistentes", use_container_width=True, key="btn_reportes_sidebar"):
+            st.session_state.mostrar_reportes = True
+            st.rerun()
+        # ==================== KPI: Avance Programado ====================
         if st.session_state.obra_seleccionada:
             cfg_kpi = kpi_cargar_config(st.session_state.obra_seleccionada)
 
@@ -968,27 +2016,24 @@ if st.session_state["auth"] == "jefe":
                 st.success("¡Meta actualizada!")
                 st.rerun()
 
-
         if st.button("➕ Agregar Nueva Obra", key="agregar_obra_btn", use_container_width=True):
             st.session_state.mostrar_form_obra = True
             st.rerun()
 
         st.divider()
 
-        if st.button("� Reportes", use_container_width=True):
-            st.session_state.mostrar_reportes = True
-            st.rerun()
-
-    # ==================== SECCIÓN: REPORTES DE PRACTICANTES (SOLO CUANDO SE HACE CLIC EN EL BOTÓN) ====================
+    # ==================== SECCIÓN: REPORTES DE ASISTENTES (PANTALLA COMPLETA) ====================
     if st.session_state.get("mostrar_reportes"):
         
         # Botón para volver
-        if st.button("← Volver al Panel Principal", use_container_width=False):
-            st.session_state.mostrar_reportes = False
-            st.rerun()
+        col1, col2 = st.columns([1, 10])
+        with col1:
+            if st.button("← Volver", use_container_width=False):
+                st.session_state.mostrar_reportes = False
+                st.rerun()
         
-        st.markdown("# 📊 REVISIÓN DE REPORTES DE PRACTICANTES")
-        st.caption("Control y seguimiento detallado de los partes diarios de cada practicante")
+        st.markdown("# 📊 REVISIÓN DE REPORTES DE ASISTENTES")
+        st.caption("Control y seguimiento detallado de los partes diarios de cada asistente")
         
         # Obtener obras disponibles
         obras = cargar_obras()
@@ -1016,10 +2061,10 @@ if st.session_state["auth"] == "jefe":
                 
                 if not avances_obra:
                     st.info(f"📭 No hay reportes registrados para la obra **{obra_seleccionada_nombre}**")
-                    st.write("Los practicantes deben crear partes diarios para que aparezcan aquí.")
+                    st.write("Los asistentes deben crear partes diarios para que aparezcan aquí.")
                 else:
-                    # Organizar por practicante
-                    reportes_por_practicante = {}
+                    # Organizar por asistente
+                    reportes_por_asistente = {}
                     
                     for avance in avances_obra:
                         responsable = avance.get("responsable", "Desconocido")
@@ -1027,7 +2072,7 @@ if st.session_state["auth"] == "jefe":
                         avance_pct = avance.get("avance", 0)
                         observaciones = avance.get("observaciones", "")
                         fotos = avance.get("fotos", [])
-                        estado = avance.get("estado", "Aprobado")  # Nuevo: estado del reporte
+                        estado = avance.get("estado", "Aprobado")
                         
                         # Obtener información de la partida
                         partida_info = avance.get("partida", {})
@@ -1041,15 +2086,17 @@ if st.session_state["auth"] == "jefe":
                         totales = avance.get("totales", {})
                         total_mo = totales.get("mano_de_obra", 0)
                         total_mat = totales.get("materiales", 0)
-                        total_ejecutado = float(total_mo or 0) + float(total_mat or 0)
+                        total_eq = totales.get("equipos", 0)
+                        total_otros = totales.get("otros", 0)
+                        total_ejecutado = float(total_mo or 0) + float(total_mat or 0) + float(total_eq or 0) + float(total_otros or 0)
                         
                         # Costos detallados
                         costos = avance.get("costos", {})
                         
-                        if responsable not in reportes_por_practicante:
-                            reportes_por_practicante[responsable] = []
+                        if responsable not in reportes_por_asistente:
+                            reportes_por_asistente[responsable] = []
                         
-                        reportes_por_practicante[responsable].append({
+                        reportes_por_asistente[responsable].append({
                             "dia": fecha,
                             "actividad": actividad,
                             "horas": horas,
@@ -1062,13 +2109,15 @@ if st.session_state["auth"] == "jefe":
                             "estado": estado,
                             "total_mo": total_mo,
                             "total_mat": total_mat,
+                            "total_eq": total_eq,
+                            "total_otros": total_otros,
                             "total_ejecutado": total_ejecutado,
                             "costos": costos,
                         })
                     
-                    # Obtener lista de practicantes únicos
-                    practicantes = list(reportes_por_practicante.keys())
-                    practicantes.sort()
+                    # Obtener lista de asistentes únicos
+                    asistentes = list(reportes_por_asistente.keys())
+                    asistentes.sort()
                     
                     # ==================== RESUMEN GENERAL ====================
                     st.markdown("### 📈 Resumen General")
@@ -1076,16 +2125,16 @@ if st.session_state["auth"] == "jefe":
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
-                        st.metric("👷 Practicantes", len(practicantes))
+                        st.metric("👷 Asistentes", len(asistentes))
                     
                     with col2:
-                        total_reportes = sum(len(reportes) for reportes in reportes_por_practicante.values())
+                        total_reportes = sum(len(reportes) for reportes in reportes_por_asistente.values())
                         st.metric("📋 Total Reportes", total_reportes)
                     
                     with col3:
                         # Contar reportes pendientes
                         reportes_pendientes = sum(
-                            1 for reportes in reportes_por_practicante.values() 
+                            1 for reportes in reportes_por_asistente.values() 
                             for r in reportes if r.get("estado") == "Pendiente"
                         )
                         st.metric("⏳ Pendientes", reportes_pendientes)
@@ -1093,31 +2142,31 @@ if st.session_state["auth"] == "jefe":
                     with col4:
                         # Calcular total de horas trabajadas
                         total_horas = sum(
-                            r["horas"] for reportes in reportes_por_practicante.values() 
+                            r["horas"] for reportes in reportes_por_asistente.values() 
                             for r in reportes
                         )
                         st.metric("⏱️ Total Horas", f"{total_horas} h")
                     
                     st.divider()
                     
-                    # ==================== VISTA DE PRACTICANTES ====================
+                    # ==================== VISTA DE ASISTENTES ====================
                     col_izq, col_der = st.columns([1, 3])
                     
-                    # Columna izquierda - Lista de practicantes
+                    # Columna izquierda - Lista de asistentes
                     with col_izq:
-                        st.markdown("### 👥 Practicantes")
+                        st.markdown("### 👥 Asistentes")
                         
                         # Filtro de estado
                         filtro_estado = st.radio(
                             "Filtrar por estado:",
                             ["Todos", "Pendiente", "Aprobado"],
-                            key="filtro_estado_practicantes"
+                            key="filtro_estado_asistentes"
                         )
                         
                         st.divider()
                         
-                        for p in practicantes:
-                            reportes = reportes_por_practicante[p]
+                        for p in asistentes:
+                            reportes = reportes_por_asistente[p]
                             
                             # Calcular estadísticas
                             pendientes = sum(1 for r in reportes if r.get("estado") == "Pendiente")
@@ -1138,12 +2187,12 @@ if st.session_state["auth"] == "jefe":
                                     label = f"✅ {p}"
                                 
                                 if st.button(label, key=f"btn_{p}", use_container_width=True):
-                                    st.session_state.ver_practicante = p
+                                    st.session_state.ver_asistente = p
                     
-                    # Columna derecha - Detalle del practicante seleccionado
+                    # Columna derecha - Detalle del asistente seleccionado
                     with col_der:
-                        if "ver_practicante" in st.session_state:
-                            p = st.session_state.ver_practicante
+                        if "ver_asistente" in st.session_state:
+                            p = st.session_state.ver_asistente
                             
                             st.markdown(f"### 📋 Reportes de **{p}**")
                             
@@ -1160,20 +2209,20 @@ if st.session_state["auth"] == "jefe":
                             
                             with col2:
                                 if st.button("← Volver", use_container_width=True):
-                                    del st.session_state.ver_practicante
+                                    del st.session_state.ver_asistente
                                     st.rerun()
                             
                             st.divider()
                             
-                            if p in reportes_por_practicante:
-                                reportes = reportes_por_practicante[p]
+                            if p in reportes_por_asistente:
+                                reportes = reportes_por_asistente[p]
                                 
                                 # Ordenar reportes
                                 reverse = ordenar == "Más reciente primero"
                                 reportes_ordenados = sorted(reportes, key=lambda x: x["dia"], reverse=reverse)
                                 
-                                # ==================== ESTADÍSTICAS DEL PRACTICANTE ====================
-                                st.markdown("#### 📊 Estadísticas del Practicante")
+                                # ==================== ESTADÍSTICAS DEL ASISTENTE ====================
+                                st.markdown("#### 📊 Estadísticas del Asistente")
                                 
                                 col1, col2, col3, col4, col5 = st.columns(5)
                                 
@@ -1232,14 +2281,16 @@ if st.session_state["auth"] == "jefe":
                                         
                                         # Costos detallados
                                         st.markdown("##### 💰 Costos Ejecutados")
-                                        col1, col2, col3 = st.columns(3)
+                                        col1, col2, col3, col4 = st.columns(4)
                                         
                                         with col1:
                                             st.metric("Mano de Obra", f"S/. {reporte['total_mo']:,.2f}")
                                         with col2:
                                             st.metric("Materiales", f"S/. {reporte['total_mat']:,.2f}")
                                         with col3:
-                                            st.metric("💰 TOTAL", f"S/. {reporte['total_ejecutado']:,.2f}")
+                                            st.metric("Equipos", f"S/. {reporte['total_eq']:,.2f}")
+                                        with col4:
+                                            st.metric("Otros", f"S/. {reporte['total_otros']:,.2f}")
                                         
                                         st.markdown(f"**💵 TOTAL EJECUTADO: S/. {reporte['total_ejecutado']:,.2f}**")
                                         
@@ -1249,7 +2300,7 @@ if st.session_state["auth"] == "jefe":
                                         if costos:
                                             st.markdown("##### 📊 Detalle de Costos")
                                             
-                                            tabs_costos = st.tabs(["Mano de Obra", "Materiales"])
+                                            tabs_costos = st.tabs(["Mano de Obra", "Materiales", "Equipos", "Otros"])
                                             
                                             with tabs_costos[0]:
                                                 if costos.get("mano_de_obra"):
@@ -1344,11 +2395,11 @@ if st.session_state["auth"] == "jefe":
                                         else:
                                             st.success(f"✅ Reporte aprobado el {reporte['dia']}")
                             else:
-                                st.info("No hay reportes para este practicante")
+                                st.info("No hay reportes para este asistente")
                         else:
-                            st.info("👈 Selecciona un practicante de la lista para ver sus reportes detallados")
+                            st.info("👈 Selecciona un asistente de la lista para ver sus reportes detallados")
             else:
-                st.info("👆 Selecciona una obra para ver los reportes de los practicantes")
+                st.info("👆 Selecciona una obra para ver los reportes de los asistentes")
         else:
             st.warning("⚠️ No hay obras registradas en el sistema")
         
@@ -1363,45 +2414,93 @@ if st.session_state["auth"] == "jefe":
         st.subheader("➕ Agregar Nueva Obra")
 
         with st.form("form_nueva_obra"):
+            st.markdown("#### 📋 Información Básica")
             col1, col2 = st.columns(2)
             with col1:
-                nuevo_codigo = st.text_input("Código de la Obra", placeholder="ej: obra2026")
+                nuevo_codigo = st.text_input("Código de la Obra*", placeholder="ej: OB-2026-001")
             with col2:
-                nuevo_nombre = st.text_input("Nombre de la Obra", placeholder="ej: Edificio Central – San Isidro")
+                nuevo_nombre = st.text_input("Nombre de la Obra*", placeholder="ej: Edificio Central – San Isidro")
 
-            presupuesto_nuevo = st.number_input(
-                "Presupuesto Total (S/.)",
-                min_value=0.0,
-                step=0.01,
-                format="%.2f",
-                help="Presupuesto inicial asignado a la obra",
-            )
+            col1, col2 = st.columns(2)
+            with col1:
+                nuevo_cliente = st.text_input("Cliente/Propietario", placeholder="ej: Municipalidad de Lima, Constructora XYZ")
+            with col2:
+                nueva_ubicacion = st.text_area("Ubicación", placeholder="ej: Av. Javier Prado 123, San Isidro, Lima", height=80)
 
-            if st.form_submit_button("Guardar", use_container_width=True):
+            st.markdown("#### 💰 Información Financiera y Cronológica")
+            col1, col2 = st.columns(2)
+            with col1:
+                presupuesto_text = st.text_input(
+                    "Presupuesto Total (S/.)*",
+                    placeholder="0.00",
+                    help="Presupuesto contractual total de la obra"
+                )
+                try:
+                    presupuesto_nuevo = float(presupuesto_text) if presupuesto_text.strip() else 0.0
+                except ValueError:
+                    presupuesto_nuevo = 0.0
+                    if presupuesto_text.strip():
+                        st.error("❌ Ingresa un número válido")
+            with col2:
+                nueva_fecha_inicio = st.date_input(
+                    "📅 Fecha de Inicio",
+                    value=date.today(),
+                    help="Fecha de inicio de la obra según contrato"
+                )
+
+            if st.form_submit_button("✅ Guardar Obra", use_container_width=True, type="primary"):
                 obras_actuales = cargar_obras()
                 es_valido, mensaje = validar_obra(nuevo_codigo, nuevo_nombre, obras_actuales)
 
                 if not es_valido:
                     st.error(f"❌ {mensaje}")
+                elif presupuesto_nuevo <= 0:
+                    st.error("❌ El presupuesto debe ser mayor a 0")
                 else:
                     exito, mensaje_db = agregar_obra(nuevo_codigo, nuevo_nombre)
                     if exito:
-                        ok_pres, msg_pres = actualizar_presupuesto_obra(nuevo_codigo, presupuesto_nuevo)
-                        if not ok_pres:
-                            st.warning(f"⚠️ Obra creada, pero no se pudo guardar el presupuesto: {msg_pres}")
-                        st.success(f"Obra '{nuevo_nombre}' agregada exitosamente")
+                        # Guardar datos adicionales
+                        datos_adicionales = {
+                            "presupuesto_total": presupuesto_nuevo,
+                            "cliente": nuevo_cliente.strip() if nuevo_cliente else "",
+                            "ubicacion": nueva_ubicacion.strip() if nueva_ubicacion else "",
+                            "fecha_inicio": str(nueva_fecha_inicio)
+                        }
+                        guardar_datos_obra(nuevo_codigo, datos_adicionales)
+                        
+                        # Crear carpeta automáticamente en Google Drive
+                        try:
+                            from modules.drive_upload import crear_carpeta_obra
+                            
+                            webapp_url, token = _get_drive_conf()
+                            
+                            if webapp_url and token:
+                                resultado = crear_carpeta_obra(webapp_url, token, nuevo_nombre, nuevo_codigo)
+                                if resultado.get("status") == "success":
+                                    st.success(f"✅ Obra '{nuevo_nombre}' agregada exitosamente")
+                                    st.info(f"📁 Carpeta creada en Drive: {resultado.get('folderUrl', 'OK')}")
+                                else:
+                                    st.success(f"✅ Obra '{nuevo_nombre}' agregada exitosamente")
+                                    st.warning(f"⚠️ Carpeta Drive: {resultado.get('message', 'Error al crear carpeta')}")
+                            else:
+                                st.success(f"✅ Obra '{nuevo_nombre}' agregada exitosamente")
+                                st.info("ℹ️ Configuración de Drive no encontrada. Carpeta no creada automáticamente.")
+                        except Exception as e:
+                            st.success(f"✅ Obra '{nuevo_nombre}' agregada exitosamente")
+                            st.warning(f"⚠️ No se pudo crear carpeta en Drive: {str(e)}")
+                        
                         st.session_state.mostrar_form_obra = False
                         st.rerun()
                     else:
                         st.error(f"❌ {mensaje_db}")
 
-        if st.button("Volver", use_container_width=True):
+        if st.button("← Volver", use_container_width=True):
             st.session_state.mostrar_form_obra = False
             st.rerun()
 
     # ==================== SECCIÓN: GESTIÓN DE EMPLEADOS ====================
     elif "mostrar_empleados" in st.session_state and st.session_state.mostrar_empleados:
-        st.header("👷 Gestión de Empleados (Mano de Obra)")
+        st.header("Gestión de Empleados (Mano de Obra)")
 
         if st.button("← Volver", use_container_width=False):
             st.session_state.mostrar_empleados = False
@@ -1666,23 +2765,68 @@ if st.session_state["auth"] == "jefe":
         obra_nombre = obras.get(obra_codigo, "Obra no encontrada")
 
         st.header(f"{obra_nombre}")
-        _render_pdf_panel()
-
-        # ==================== BOTONES DE GESTIÓN POR OBRA ====================
-        col_empl, col_sep = st.columns([1, 5])
         
-        with col_empl:
-            if st.button("👷 Gestión de Empleados", use_container_width=True, key="btn_empleados_obra"):
-                st.session_state.mostrar_empleados_obra = True
-                st.rerun()
+        # ==================== BOTÓN DE LIMPIAR AVANCES ====================
+        col1, col2, col3 = st.columns([8, 1, 1])
+        with col3:
+            if st.button("🗑️ Limpiar", key="btn_limpiar_avances", help="Eliminar todos los partes diarios", type="secondary", use_container_width=True):
+                st.session_state.mostrar_modal_limpiar = True
+        
+        # Modal de confirmación para limpiar avances
+        if st.session_state.get("mostrar_modal_limpiar", False):
+            with st.expander("⚠️ CONFIRMAR ELIMINACIÓN DE PARTES DIARIOS", expanded=True):
+                st.warning("**Esta acción eliminará TODOS los partes diarios registrados en esta obra.**")
+                st.info("""
+                **Se mantendrán intactos:**
+                - ✅ La obra y sus datos básicos
+                - ✅ El presupuesto total
+                - ✅ El cronograma valorizado
+                - ✅ Los hitos de pago
+                - ✅ Los insumos registrados
+                
+                **Se eliminarán:**
+                - ❌ Todos los partes diarios (registros de avance)
+                - ❌ Costos asociados a cada parte diario
+                """)
+                
+                confirmar = st.checkbox("✅ Sí, estoy seguro de eliminar todos los partes diarios", key="check_confirmar_limpiar")
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("❌ Cancelar", use_container_width=True, key="btn_cancelar_limpiar"):
+                        st.session_state.mostrar_modal_limpiar = False
+                        st.rerun()
+                
+                with col_b:
+                    if st.button("🗑️ ELIMINAR TODO", use_container_width=True, type="primary", key="btn_confirmar_limpiar", disabled=not confirmar):
+                        if confirmar:
+                            exito, mensaje = limpiar_avances_obra(obra_codigo)
+                            if exito:
+                                st.success(f"✅ {mensaje}")
+                                st.balloons()
+                                st.session_state.mostrar_modal_limpiar = False
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {mensaje}")
+                        else:
+                            st.warning("⚠️ Debes confirmar la acción marcando el checkbox")
+        
+        _render_pdf_panel()
 
         # ==================== VISTA DE EMPLEADOS DE LA OBRA ====================
         if st.session_state.get("mostrar_empleados_obra"):
             if st.button("← Volver", use_container_width=False, key="volver_empleados_obra"):
                 st.session_state.mostrar_empleados_obra = False
+                # Limpiar estados de edición y eliminación al volver
+                st.session_state.mostrar_editor_empleado = False
+                st.session_state.mostrar_confirmacion_eliminar = False
+                if 'empleado_editando' in st.session_state:
+                    del st.session_state.empleado_editando
+                if 'empleado_eliminar' in st.session_state:
+                    del st.session_state.empleado_eliminar
                 st.rerun()
             
-            st.subheader("👷 Gestión de Empleados - " + obra_nombre)
+            st.subheader("Gestión de Empleados - " + obra_nombre)
             
             empleados = []
             try:
@@ -1698,10 +2842,10 @@ if st.session_state["auth"] == "jefe":
                 nombre_emp = st.text_input("Nombre", placeholder="Juan Pérez", key="nombre_emp_obra")
                 cargo_emp = st.text_input("Cargo", placeholder="Albañil, Ayudante", key="cargo_emp_obra")
                 dni_emp = st.text_input("DNI", placeholder="12345678", key="dni_emp_obra")
-                jornal_emp = st.number_input("Jornal Diario (S/.)", min_value=0.0, step=10.0, key="jornal_emp_obra")
+                telefono_emp = st.text_input("Número de Teléfono", placeholder="987654321", key="telefono_emp_obra")
                 
                 if st.button("✅ Agregar", use_container_width=True, type="primary", key="btn_agregar_emp_obra"):
-                    if not nombre_emp or not cargo_emp or not dni_emp or jornal_emp <= 0:
+                    if not nombre_emp or not cargo_emp or not dni_emp:
                         st.error("❌ Completa todos los campos")
                     else:
                         emp_data = {
@@ -1709,7 +2853,7 @@ if st.session_state["auth"] == "jefe":
                             "nombre": nombre_emp,
                             "cargo": cargo_emp,
                             "dni": dni_emp,
-                            "jornal_diario": jornal_emp
+                            "telefono": telefono_emp
                         }
                         db.collection("empleados").add(emp_data)
                         st.success("✅ Empleado agregado")
@@ -1719,19 +2863,83 @@ if st.session_state["auth"] == "jefe":
                 st.write("**Empleados de la Obra**")
                 if empleados:
                     for emp in empleados:
-                        st.write(f"👤 {emp['nombre']} - {emp['cargo']} (DNI: {emp['dni']}) - S/. {emp['jornal_diario']:.2f}/día")
+                        # Crear un contenedor con columnas para cada empleado
+                        col1, col2, col3 = st.columns([4, 1, 1])
+                        
+                        with col1:
+                            telefono_display = emp.get('telefono', 'N/A')
+                            st.write(f"👤 {emp['nombre']} - {emp['cargo']} (DNI: {emp['dni']}) - Tel: {telefono_display}")
+                        
+                        with col2:
+                            # Botón de editar (✏️)
+                            if st.button("Editar", key=f"editar_{emp['id']}", help="Editar empleado", use_container_width=True):
+                                st.session_state.empleado_editando = emp
+                                st.session_state.mostrar_editor_empleado = True
+                                st.rerun()
+                        
+                        with col3:
+                            # Botón de eliminar (🗑️)
+                            if st.button("Eliminar", key=f"eliminar_{emp['id']}", help="Eliminar empleado", use_container_width=True, type="secondary"):
+                                st.session_state.empleado_eliminar = emp
+                                st.session_state.mostrar_confirmacion_eliminar = True
+                                st.rerun()
+                    
+                    # Modal para editar empleado
+                    if st.session_state.get("mostrar_editor_empleado", False):
+                        emp_edit = st.session_state.empleado_editando
+                        with st.expander(f"✏️ Editando: {emp_edit['nombre']}", expanded=True):
+                            with st.form(f"form_editar_{emp_edit['id']}"):
+                                nuevo_nombre = st.text_input("Nombre", value=emp_edit['nombre'])
+                                nuevo_cargo = st.text_input("Cargo", value=emp_edit['cargo'])
+                                nuevo_dni = st.text_input("DNI", value=emp_edit['dni'])
+                                nuevo_telefono = st.text_input("Número de Teléfono", value=emp_edit.get('telefono', ''),
+                                                              placeholder="987654321")
+                                
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    if st.form_submit_button("💾 Guardar Cambios", use_container_width=True, type="primary"):
+                                        # Actualizar en Firebase
+                                        db.collection("empleados").document(emp_edit['id']).update({
+                                            "nombre": nuevo_nombre,
+                                            "cargo": nuevo_cargo,
+                                            "dni": nuevo_dni,
+                                            "telefono": nuevo_telefono
+                                        })
+                                        st.success("✅ Empleado actualizado")
+                                        st.session_state.mostrar_editor_empleado = False
+                                        st.rerun()
+                                
+                                with col2:
+                                    if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                                        st.session_state.mostrar_editor_empleado = False
+                                        st.rerun()
+                    
+                    # Modal de confirmación para eliminar
+                    if st.session_state.get("mostrar_confirmacion_eliminar", False):
+                        emp_elim = st.session_state.empleado_eliminar
+                        with st.expander(f"⚠️ Confirmar eliminación", expanded=True):
+                            st.warning(f"¿Estás seguro de eliminar a **{emp_elim['nombre']}**?")
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("✅ Sí, eliminar", use_container_width=True, type="primary"):
+                                    db.collection("empleados").document(emp_elim['id']).delete()
+                                    st.success("✅ Empleado eliminado")
+                                    st.session_state.mostrar_confirmacion_eliminar = False
+                                    st.rerun()
+                            
+                            with col2:
+                                if st.button("❌ Cancelar", use_container_width=True):
+                                    st.session_state.mostrar_confirmacion_eliminar = False
+                                    st.rerun()
                 else:
-                    st.info("No hay empleados.")
+                    st.info("No hay empleados registrados para esta obra.")
             
             st.divider()
+            st.stop()  # Detener ejecución aquí cuando se muestra gestión de empleados
 
         # ==================== PANEL NORMAL DE LA OBRA ====================
-        if not st.session_state.get("mostrar_empleados_obra"):
-
-            presupuesto = obtener_presupuesto_obra(obra_codigo)
-        else:
-            presupuesto = {}
-
+        presupuesto = obtener_presupuesto_obra(obra_codigo)
         avances = obtener_avances_obra(obra_codigo)
         donaciones_obra = obtener_donaciones_obra(obra_codigo)
         impacto_don = impacto_donacion_en_presupuesto(presupuesto, donaciones_obra)
@@ -1819,7 +3027,7 @@ if st.session_state["auth"] == "jefe":
 
         st.divider()
 
-        # ==================== TAB 1: PARTE DIARIO (JEFE) ====================
+        # ==================== TAB 1: PARTE DIARIO (JEFE) - VERSIÓN MEJORADA ====================
         with tab1:
             st.subheader("Parte Diario del Día")
             hoy = date.today()
@@ -1831,6 +3039,10 @@ if st.session_state["auth"] == "jefe":
                 st.session_state.insumos_mo_confirmados = []
             if "insumos_mat_confirmados" not in st.session_state:
                 st.session_state.insumos_mat_confirmados = []
+            if "insumos_eq_confirmados" not in st.session_state:
+                st.session_state.insumos_eq_confirmados = []
+            if "insumos_otros_confirmados" not in st.session_state:
+                st.session_state.insumos_otros_confirmados = []
 
             counter = st.session_state.form_parte_diario_counter
 
@@ -1842,78 +3054,151 @@ if st.session_state["auth"] == "jefe":
             with col2:
                 avance = st.slider("Avance logrado hoy (%)", 0, 30, 5, key=f"avance_input_{counter}")
 
+            # Cargar partidas del cronograma para el selectbox
+            cronograma_partidas = obtener_cronograma_obra(obra_codigo) or []
+            nombres_partidas = [p.get("nombre", "Sin nombre") for p in cronograma_partidas if p.get("estado") == "Aprobado"]
+            opciones_partidas = nombres_partidas + ["➕ Otra partida (especificar)"]
+            
             col1, col2 = st.columns(2)
             with col1:
-                name_partida = st.text_input(
-                    "Nombre de la partida o actividad realizada hoy",
-                    placeholder="ej: Cimentación, Estructura, Albañilería, etc.",
-                    key=f"name_partida_input_{counter}"
+                if not nombres_partidas:
+                    st.warning("⚠️ No hay partidas en el cronograma. Primero crea partidas en el tab 'Cronograma Valorizado'.")
+                    opciones_partidas = ["➕ Otra partida (especificar)"]
+                
+                st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: black;"><strong>🏗️ Partida del Cronograma</strong></p>', unsafe_allow_html=True)
+                partida_seleccionada = st.selectbox(
+                    "Partida del Cronograma",
+                    opciones_partidas,
+                    key=f"partida_selectbox_{counter}",
+                    label_visibility="collapsed"
                 )
+                
+                # Si selecciona "Otra", mostrar campo de texto
+                if partida_seleccionada.startswith("➕"):
+                    name_partida = st.text_input(
+                        "Especifica la partida:",
+                        placeholder="ej: Demolición, Limpieza, etc.",
+                        key=f"name_partida_otra_{counter}"
+                    )
+                    if not name_partida.strip():
+                        name_partida = "Sin especificar"
+                else:
+                    name_partida = partida_seleccionada
             with col2:
                 col1b, col2b = st.columns(2)
                 with col1b:
-                    cantidad_ejecutada = st.number_input(
+                    cantidad_ejecutada_text = st.text_input(
                         "Metrado Ejecutado",
-                        min_value=0.0,
-                        step=0.1,
-                        placeholder="Ingresa la cantidad realizada",
+                        placeholder="0.0",
                         key=f"cantidad_ejecutada_{counter}"
                     )
+                    try:
+                        cantidad_ejecutada = float(cantidad_ejecutada_text) if cantidad_ejecutada_text.strip() else 0.0
+                    except ValueError:
+                        cantidad_ejecutada = 0.0
+                        if cantidad_ejecutada_text.strip():
+                            st.error("❌ Ingresa un número válido")
                 with col2b:
                     unidad_medida = st.text_input(
                         "Unidad",
                         placeholder="ej: M3, KG, UND, HH",
                         key=f"unidad_input_{counter}"
                     )
+            
+            # Campo de descripción del avance del día
+            descripcion_avance = st.text_area(
+                "📝 Descripción del avance de hoy (opcional pero recomendado)",
+                placeholder="ej: Instalación de ventanas de aluminio en 2do piso - sector A, Tarrajeo de baños principal y secundario, etc.",
+                height=80,
+                key=f"descripcion_avance_{counter}",
+                help="Describe la actividad específica realizada. Esto ayuda a la trazabilidad y auditorías."
+            )
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns([1, 2, 1.5])
             with col1:
-                horas_mano_obra = st.number_input("Jornada Laboral (h)", min_value=0, step=1, value=8, key=f"horas_input_{counter}")
+                horas_mano_obra_text = st.text_input("Jornada Laboral (h)", placeholder="8", value="8", key=f"horas_input_{counter}")
+                try:
+                    horas_mano_obra = float(horas_mano_obra_text) if horas_mano_obra_text.strip() else 8.0
+                except ValueError:
+                    horas_mano_obra = 8.0
+                    if horas_mano_obra_text.strip():
+                        st.error("❌ Ingresa un número válido")
             with col2:
-                rendimiento_partida = st.number_input(
+                rendimiento_partida_text = st.text_input(
                     "Rendimiento Esperado de la Partida (por día)",
-                    min_value=0.0,
-                    step=0.1,
-                    value=6.0,
+                    placeholder="6.0",
+                    value="6.0",
                     help="Rendimiento en unidad/día. Se ajusta proporcionalmente si la jornada no es de 8 horas.",
                     key=f"rendimiento_input_{counter}"
                 )
+                try:
+                    rendimiento_partida = float(rendimiento_partida_text) if rendimiento_partida_text.strip() else 6.0
+                except ValueError:
+                    rendimiento_partida = 6.0
+                    if rendimiento_partida_text.strip():
+                        st.error("❌ Ingresa un número válido")
+            with col3:
+                precio_venta_text = st.text_input(
+                    "Precio de Venta Unitario (S/.)",
+                    placeholder="15.0",
+                    help="Precio al que se cobra el trabajo por unidad (para análisis de rentabilidad)",
+                    key=f"precio_venta_{counter}"
+                )
+                try:
+                    precio_venta_unitario = float(precio_venta_text) if precio_venta_text.strip() else 0.0
+                except ValueError:
+                    precio_venta_unitario = 0.0
+                    if precio_venta_text.strip():
+                        st.error("❌ Ingresa un número válido")
 
             st.markdown("### Costos")
 
-            # Cargar empleados
-            empleados_docs = db.collection("empleados").stream()
+            # Cargar empleados e insumos
+            empleados_docs = db.collection("empleados").where("codigo_obra", "==", obra_codigo).stream()
             empleados = [{"id": d.id, **d.to_dict()} for d in empleados_docs]
 
-            tab_mo, tab_insumos = st.tabs(["Mano de Obra", "Materiales"])
+            insumos_lista = cargar_insumos()
+
+            tab_mo, tab_mat, tab_eq, tab_otros = st.tabs(["Mano de Obra", "Materiales", "Equipos", "Otros"])
 
             with tab_mo:
-                st.markdown("#### Ingresar Mano de Obra")
+                st.markdown("#### Ingresar Mano de Obra - Datos Detallados")
+                
+                # Botón de Gestión de Empleados
+                if st.button("Gestión de Empleados", use_container_width=True, key="btn_empleados_obra"):
+                    st.session_state.mostrar_empleados_obra = True
+                    st.rerun()
                 
                 if not empleados:
                     st.warning("⚠️ No hay empleados registrados. Ve a 'Gestión de Empleados' para agregar trabajadores.")
                 else:
                     col1, col2 = st.columns(2)
                     with col1:
-                        nombres_empleados = [f"{e['nombre']} - {e['cargo']}" for e in empleados]
+                        nombres_empleados = [f"{e['nombre']} - {e['cargo']} (DNI: {e['dni']})" for e in empleados]
+                        st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: rgb(49, 51, 63);"><strong>Seleccionar Empleado</strong></p>', unsafe_allow_html=True)
                         empleado_seleccionado = st.selectbox(
                             "Seleccionar Empleado",
                             nombres_empleados,
-                            key="empleado_mo"
+                            key=f"empleado_mo_{counter}",
+                            label_visibility="collapsed"
                         )
                         idx_emp = nombres_empleados.index(empleado_seleccionado)
                         empleado_data = empleados[idx_emp]
                     with col2:
-                        sueldo_dia = st.number_input(
+                        sueldo_text = st.text_input(
                             "Sueldo del Día (S/.)",
-                            min_value=0.0,
-                            step=10.0,
-                            value=80.0,
-                            format="%.2f",
-                            key="sueldo_mo"
+                            placeholder="80",
+                            value="80",
+                            key=f"sueldo_mo_{counter}"
                         )
+                        try:
+                            sueldo_dia = float(sueldo_text) if sueldo_text.strip() else 0.0
+                        except ValueError:
+                            sueldo_dia = 0.0
+                            if sueldo_text.strip():
+                                st.error("❌ Ingresa un número válido")
 
-                    if st.button("Confirmar Mano de Obra", use_container_width=True, type="primary", key="btn_confirmar_mo"):
+                    if st.button("Confirmar Mano de Obra", use_container_width=True, type="primary", key=f"btn_confirmar_mo_{counter}"):
                         if sueldo_dia <= 0:
                             st.error("❌ El sueldo del día debe ser mayor a 0")
                         else:
@@ -1921,73 +3206,356 @@ if st.session_state["auth"] == "jefe":
                                 "Empleado": empleado_data['nombre'],
                                 "Cargo": empleado_data['cargo'],
                                 "DNI": empleado_data['dni'],
+                                "Contacto": empleado_data.get('numero', 'No registrado'),
                                 "Sueldo del Día": sueldo_dia,
                                 "Parcial (S/)": sueldo_dia
                             }
                             st.session_state.insumos_mo_confirmados.append(item)
-                            st.success(f"✓ {empleado_data['nombre']} agregado")
+                            st.success(f"✓ {empleado_data['nombre']} agregado (DNI: {empleado_data['dni']})")
                             st.rerun()
 
-            with tab_insumos:
+            with tab_mat:
                 st.markdown("#### Ingresar Material")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    desc_insumo = st.text_input("Descripción", placeholder="ej: Cemento, Alquiler Mezcladora, etc.", key="desc_insumo")
+                    desc_materiales = st.text_input("Descripción del Material", placeholder="Ej: Cemento Portland Tipo I", key=f"desc_mat_{counter}")
                 with col2:
-                    cant_insumo = st.number_input("Cantidad", min_value=0.0, step=0.01, format="%.4f", key="cant_insumo")
+                    cant_mat_text = st.text_input("Cantidad", placeholder="0", key=f"cant_mat_{counter}")
+                    try:
+                        cant_materiales = float(cant_mat_text) if cant_mat_text.strip() else 0.0
+                    except ValueError:
+                        cant_materiales = 0.0
+                        if cant_mat_text.strip():
+                            st.error("❌ Ingresa un número válido")
                 with col3:
-                    precio_insumo = st.number_input("Precio Unit. (S/.)", min_value=0.0, step=0.01, value=0.0, format="%.2f", key="precio_insumo")
+                    precio_mat_text = st.text_input("Precio Unitario (S/.)", placeholder="0", key=f"precio_mat_{counter}")
+                    try:
+                        precio_materiales = float(precio_mat_text) if precio_mat_text.strip() else 0.0
+                    except ValueError:
+                        precio_materiales = 0.0
+                        if precio_mat_text.strip():
+                            st.error("❌ Ingresa un número válido")
 
-                if st.button("Confirmar Material", use_container_width=True, type="primary", key="btn_confirmar_insumo"):
+                if st.button("Confirmar Material", use_container_width=True, type="primary", key=f"btn_confirmar_mat_{counter}"):
                     if rendimiento_partida <= 0:
                         st.error("❌ El rendimiento de la partida debe ser mayor a 0")
-                    elif not unidad_medida.strip():
-                        st.error("❌ Debes especificar la unidad de medida")
-                    elif cant_insumo <= 0:
+                    elif not desc_materiales.strip():
+                        st.error("❌ Debes ingresar la descripción del material")
+                    elif cant_materiales <= 0:
                         st.error("❌ La cantidad debe ser mayor a 0")
-                    elif not desc_insumo.strip():
-                        st.error("❌ Debes ingresar una descripción")
-                    elif precio_insumo <= 0:
-                        st.error("❌ El precio debe ser mayor a 0")
+                    elif precio_materiales <= 0:
+                        st.error("❌ El precio unitario debe ser mayor a 0")
                     else:
-                        parcial_insumo = calcular_parcial(cant_insumo, precio_insumo)
+                        parcial_mat = calcular_parcial(cant_materiales, precio_materiales)
                         item = {
-                            "Descripción": desc_insumo,
-                            "Cantidad": cant_insumo,
-                            "Precio Unit.": precio_insumo,
-                            "Parcial (S/)": parcial_insumo
+                            "Insumo": desc_materiales.strip(),
+                            "Cantidad": cant_materiales,
+                            "Precio Unit.": precio_materiales,
+                            "Parcial (S/)": parcial_mat
                         }
                         st.session_state.insumos_mat_confirmados.append(item)
-                        st.success(f"✓ {desc_insumo} agregado")
+                        st.success(f"✓ {desc_materiales} agregado")
+                        st.rerun()
+
+            with tab_eq:
+                st.markdown("#### Ingresar Equipo")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    desc_equipos = st.text_input("Descripción del Equipo", placeholder="Ej: Mezcladora de Concreto", key=f"desc_eq_{counter}")
+                with col2:
+                    cant_eq_text = st.text_input("Cantidad (Horas/Días)", placeholder="0", key=f"cant_eq_{counter}")
+                    try:
+                        cant_equipos = float(cant_eq_text) if cant_eq_text.strip() else 0.0
+                    except ValueError:
+                        cant_equipos = 0.0
+                        if cant_eq_text.strip():
+                            st.error("❌ Ingresa un número válido")
+                with col3:
+                    precio_eq_text = st.text_input("Precio Unitario (S/.)", placeholder="0", key=f"precio_eq_{counter}")
+                    try:
+                        precio_equipos = float(precio_eq_text) if precio_eq_text.strip() else 0.0
+                    except ValueError:
+                        precio_equipos = 0.0
+                        if precio_eq_text.strip():
+                            st.error("❌ Ingresa un número válido")
+
+                if st.button("Confirmar Equipo", use_container_width=True, type="primary", key=f"btn_confirmar_eq_{counter}"):
+                    if rendimiento_partida <= 0:
+                        st.error("❌ El rendimiento de la partida debe ser mayor a 0")
+                    elif not desc_equipos.strip():
+                        st.error("❌ Debes ingresar la descripción del equipo")
+                    elif cant_equipos <= 0:
+                        st.error("❌ La cantidad debe ser mayor a 0")
+                    elif precio_equipos <= 0:
+                        st.error("❌ El precio unitario debe ser mayor a 0")
+                    else:
+                        parcial_eq = calcular_parcial(cant_equipos, precio_equipos)
+                        item = {
+                            "Insumo": desc_equipos.strip(),
+                            "Cantidad": cant_equipos,
+                            "Precio Unit.": precio_equipos,
+                            "Parcial (S/)": parcial_eq
+                        }
+                        st.session_state.insumos_eq_confirmados.append(item)
+                        st.success(f"✓ {desc_equipos} agregado")
+                        st.rerun()
+
+            with tab_otros:
+                st.markdown("#### Ingresar Otros Gastos")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    desc_otros = st.text_input("Descripción del Gasto", placeholder="Ej: Transporte de materiales", key=f"desc_otros_{counter}")
+                with col2:
+                    cant_otros_text = st.text_input("Cantidad", placeholder="0", key=f"cant_otros_{counter}")
+                    try:
+                        cant_otros = float(cant_otros_text) if cant_otros_text.strip() else 0.0
+                    except ValueError:
+                        cant_otros = 0.0
+                        if cant_otros_text.strip():
+                            st.error("❌ Ingresa un número válido")
+                with col3:
+                    precio_otros_text = st.text_input("Precio Unitario (S/.)", placeholder="0", key=f"precio_otros_{counter}")
+                    try:
+                        precio_otros = float(precio_otros_text) if precio_otros_text.strip() else 0.0
+                    except ValueError:
+                        precio_otros = 0.0
+                        if precio_otros_text.strip():
+                            st.error("❌ Ingresa un número válido")
+
+                if st.button("Confirmar Otro", use_container_width=True, type="primary", key=f"btn_confirmar_otros_{counter}"):
+                    if rendimiento_partida <= 0:
+                        st.error("❌ El rendimiento de la partida debe ser mayor a 0")
+                    elif not desc_otros.strip():
+                        st.error("❌ Debes ingresar la descripción del gasto")
+                    elif cant_otros <= 0:
+                        st.error("❌ La cantidad debe ser mayor a 0")
+                    elif precio_otros <= 0:
+                        st.error("❌ El precio unitario debe ser mayor a 0")
+                    else:
+                        parcial_otros = calcular_parcial(cant_otros, precio_otros)
+                        item = {
+                            "Insumo": desc_otros.strip(),
+                            "Cantidad": cant_otros,
+                            "Precio Unit.": precio_otros,
+                            "Parcial (S/)": parcial_otros
+                        }
+                        st.session_state.insumos_otros_confirmados.append(item)
+                        st.success(f"✓ {desc_otros} agregado")
                         st.rerun()
 
             # Listas confirmadas
             if st.session_state.insumos_mo_confirmados:
                 st.markdown("#### Mano de Obra Confirmada")
-                st.dataframe(pd.DataFrame(st.session_state.insumos_mo_confirmados), use_container_width=True, hide_index=True)
-                if st.button("🗑️ Limpiar Mano de Obra", key="limpiar_mo"):
-                    st.session_state.insumos_mo_confirmados = []
-                    st.rerun()
+                # Encabezados
+                cols_header = st.columns([3, 2, 2, 2, 2, 2, 1])
+                with cols_header[0]:
+                    st.markdown("**Empleado**")
+                with cols_header[1]:
+                    st.markdown("**Cargo**")
+                with cols_header[2]:
+                    st.markdown("**DNI**")
+                with cols_header[3]:
+                    st.markdown("**Contacto**")
+                with cols_header[4]:
+                    st.markdown("**Sueldo del Día**")
+                with cols_header[5]:
+                    st.markdown("**Parcial (S/)**")
+                with cols_header[6]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_mo_confirmados):
+                    cols = st.columns([3, 2, 2, 2, 2, 2, 1])
+                    with cols[0]:
+                        st.write(item.get("Empleado", ""))
+                    with cols[1]:
+                        st.write(item.get("Cargo", ""))
+                    with cols[2]:
+                        st.write(item.get("DNI", ""))
+                    with cols[3]:
+                        st.write(item.get("Contacto", "No registrado"))
+                    with cols[4]:
+                        st.write(f"{item.get('Sueldo del Día', 0)}")
+                    with cols[5]:
+                        st.write(f"{item.get('Parcial (S/)', 0)}")
+                    with cols[6]:
+                        if st.button("🗑️", key=f"del_mo_{counter}_{idx}"):
+                            st.session_state.insumos_mo_confirmados.pop(idx)
+                            st.rerun()
+                
+                # ==================== ANÁLISIS DE RENTABILIDAD DE MANO DE OBRA ====================
+                st.markdown("##### 📊 Análisis de Rentabilidad")
+                
+                total_costo_mo = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mo_confirmados])
+                
+                # Obtener datos de la partida
+                cant_exec = cantidad_ejecutada if 'cantidad_ejecutada' in locals() else 0.0
+                precio_vta = precio_venta_unitario if 'precio_venta_unitario' in locals() else 0.0
+                
+                if cant_exec > 0 and precio_vta > 0:
+                    valor_trabajo = cant_exec * precio_vta
+                    diferencia = valor_trabajo - total_costo_mo
+                    rentabilidad_pct = (diferencia / valor_trabajo * 100) if valor_trabajo > 0 else 0
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric(
+                            "💰 Valor del Trabajo",
+                            f"S/. {valor_trabajo:,.2f}",
+                            help=f"{cant_exec} {unidad_medida if 'unidad_medida' in locals() else 'und'} × S/. {precio_vta}"
+                        )
+                    
+                    with col2:
+                        st.metric(
+                            "👷 Costo Mano de Obra",
+                            f"S/. {total_costo_mo:,.2f}",
+                            help="Suma de sueldos del día"
+                        )
+                    
+                    with col3:
+                        if diferencia >= 0:
+                            st.metric(
+                                "✅ Ganancia",
+                                f"S/. {diferencia:,.2f}",
+                                delta=f"{rentabilidad_pct:.1f}%",
+                                delta_color="normal"
+                            )
+                        else:
+                            st.metric(
+                                "❌ Pérdida",
+                                f"S/. {abs(diferencia):,.2f}",
+                                delta=f"{rentabilidad_pct:.1f}%",
+                                delta_color="inverse"
+                            )
+                    
+                    with col4:
+                        if diferencia >= 0:
+                            estado_rentabilidad = "🟢 Rentable"
+                            color_badge = "#2ecc71"
+                        else:
+                            estado_rentabilidad = "🔴 No Rentable"
+                            color_badge = "#e74c3c"
+                        
+                        st.markdown(f"""
+                        <div style="text-align: center; padding: 10px; background-color: {color_badge}20; border-radius: 8px; border: 2px solid {color_badge};">
+                            <h3 style="margin: 0; color: {color_badge};">{estado_rentabilidad}</h3>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Mensaje explicativo
+                    if diferencia >= 0:
+                        st.success(f"✅ **Excelente:** El valor del trabajo (S/. {valor_trabajo:,.2f}) supera el costo de mano de obra (S/. {total_costo_mo:,.2f}). Ganancia: S/. {diferencia:,.2f}")
+                    else:
+                        st.error(f"⚠️ **Atención:** El costo de mano de obra (S/. {total_costo_mo:,.2f}) supera el valor del trabajo (S/. {valor_trabajo:,.2f}). Pérdida: S/. {abs(diferencia):,.2f}")
+                else:
+                    st.info("ℹ️ Ingresa el **Metrado Ejecutado** y el **Precio de Venta Unitario** arriba para ver el análisis de rentabilidad.")
+                
+                st.markdown("---")
 
             if st.session_state.insumos_mat_confirmados:
                 st.markdown("#### Materiales Confirmados")
-                st.dataframe(pd.DataFrame(st.session_state.insumos_mat_confirmados), use_container_width=True, hide_index=True)
-                if st.button("🗑️ Limpiar Materiales", key="limpiar_insumos"):
-                    st.session_state.insumos_mat_confirmados = []
-                    st.rerun()
+                # Encabezados
+                cols_header = st.columns([5, 2, 3, 1])
+                with cols_header[0]:
+                    st.markdown("**Insumo**")
+                with cols_header[1]:
+                    st.markdown("**Cant.**")
+                with cols_header[2]:
+                    st.markdown("**Valor (S/.)**")
+                with cols_header[3]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_mat_confirmados):
+                    cols = st.columns([5, 2, 3, 1])
+                    with cols[0]:
+                        st.write(item.get("Insumo", ""))
+                    with cols[1]:
+                        st.write(f"{item.get('Cantidad', 0)}")
+                    with cols[2]:
+                        st.write(f"S/. {item.get('Parcial (S/)', 0):,.2f}")
+                    with cols[3]:
+                        if st.button("🗑️", key=f"del_mat_{counter}_{idx}"):
+                            st.session_state.insumos_mat_confirmados.pop(idx)
+                            st.rerun()
+                
+                st.markdown("---")
+
+            if st.session_state.insumos_eq_confirmados:
+                st.markdown("#### Equipos Confirmados")
+                # Encabezados
+                cols_header = st.columns([5, 2, 3, 1])
+                with cols_header[0]:
+                    st.markdown("**Insumo**")
+                with cols_header[1]:
+                    st.markdown("**Cant.**")
+                with cols_header[2]:
+                    st.markdown("**Valor (S/.)**")
+                with cols_header[3]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_eq_confirmados):
+                    cols = st.columns([5, 2, 3, 1])
+                    with cols[0]:
+                        st.write(item.get("Insumo", ""))
+                    with cols[1]:
+                        st.write(f"{item.get('Cantidad', 0)}")
+                    with cols[2]:
+                        st.write(f"S/. {item.get('Parcial (S/)', 0):,.2f}")
+                    with cols[3]:
+                        if st.button("🗑️", key=f"del_eq_{counter}_{idx}"):
+                            st.session_state.insumos_eq_confirmados.pop(idx)
+                            st.rerun()
+                
+                st.markdown("---")
+
+            if st.session_state.insumos_otros_confirmados:
+                st.markdown("#### Otros Confirmados")
+                # Encabezados
+                cols_header = st.columns([5, 2, 3, 1])
+                with cols_header[0]:
+                    st.markdown("**Insumo**")
+                with cols_header[1]:
+                    st.markdown("**Cant.**")
+                with cols_header[2]:
+                    st.markdown("**Valor (S/.)**")
+                with cols_header[3]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_otros_confirmados):
+                    cols = st.columns([5, 2, 3, 1])
+                    with cols[0]:
+                        st.write(item.get("Insumo", ""))
+                    with cols[1]:
+                        st.write(f"{item.get('Cantidad', 0)}")
+                    with cols[2]:
+                        st.write(f"S/. {item.get('Parcial (S/)', 0):,.2f}")
+                    with cols[3]:
+                        if st.button("🗑️", key=f"del_otros_{counter}_{idx}"):
+                            st.session_state.insumos_otros_confirmados.pop(idx)
+                            st.rerun()
+                
+                st.markdown("---")
 
             st.markdown("### 📊 Resumen de Costos Consolidado")
             total_mo = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mo_confirmados])
-            total_insumos = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mat_confirmados])
-            total_general = total_mo + total_insumos
+            total_mat = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mat_confirmados])
+            total_eq = sum([item["Parcial (S/)"] for item in st.session_state.insumos_eq_confirmados])
+            total_otros = sum([item["Parcial (S/)"] for item in st.session_state.insumos_otros_confirmados])
+            total_general = total_mo + total_mat + total_eq + total_otros
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Mano de Obra", f"S/. {total_mo:.2f}")
             with col2:
-                st.metric("Materiales", f"S/. {total_insumos:.2f}")
+                st.metric("Materiales", f"S/. {total_mat:.2f}")
             with col3:
-                st.metric("💰 TOTAL", f"S/. {total_general:.2f}", delta_color="normal")
+                st.metric("Equipos", f"S/. {total_eq:.2f}")
+            with col4:
+                st.metric("Otros", f"S/. {total_otros:.2f}")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("💰 TOTAL GENERAL", f"S/. {total_general:.2f}", delta_color="normal")
 
             st.markdown("### Finalizar Parte Diario")
             obs = st.text_area("Observaciones", key=f"obs_final_{counter}")
@@ -1996,6 +3564,7 @@ if st.session_state["auth"] == "jefe":
             st.session_state["cantidad_ejecutada_cache"] = cantidad_ejecutada
             st.session_state["unidad_medida_cache"] = unidad_medida
             st.session_state["total_general_cache"] = total_general
+            st.session_state["precio_venta_unitario_cache"] = precio_venta_unitario
 
             if 0 < len(fotos) < 3:
                 st.warning("⚠️ Debes subir mínimo 3 fotos")
@@ -2022,8 +3591,8 @@ if st.session_state["auth"] == "jefe":
                         totales = calcular_totales_costos(
                             st.session_state.insumos_mo_confirmados,
                             st.session_state.insumos_mat_confirmados,
-                            [],
-                            [],
+                            st.session_state.insumos_eq_confirmados,
+                            st.session_state.insumos_otros_confirmados,
                             cantidad_ejecutada=1  # Ya no se multiplica, total directo
                         )
                         
@@ -2039,14 +3608,16 @@ if st.session_state["auth"] == "jefe":
                             observaciones=obs,
                             rutas_fotos=rutas_fotos,
                             nombre_partida=name_partida,
+                            descripcion_avance=descripcion_avance,
                             rendimiento_partida=rendimiento_partida,
                             unidad_medida=st.session_state.get("unidad_medida_cache", unidad_medida),
                             horas_mano_obra=horas_mano_obra,
                             cantidad_ejecutada=cantidad_ejecutada_cache,
+                            precio_venta_unitario=st.session_state.get("precio_venta_unitario_cache", 0.0),
                             insumos_mo=st.session_state.insumos_mo_confirmados,
                             insumos_mat=st.session_state.insumos_mat_confirmados,
-                            insumos_eq=[],
-                            insumos_otros=[],
+                            insumos_eq=st.session_state.insumos_eq_confirmados,
+                            insumos_otros=st.session_state.insumos_otros_confirmados,
                             totales=totales
                         )
 
@@ -2074,10 +3645,40 @@ if st.session_state["auth"] == "jefe":
                         st.session_state.pdf_avance = nuevo_avance
                         st.session_state.pdf_bytes = None
 
+                        # ==========================
+                        # 📤 SUBIR AUTOMÁTICAMENTE A DRIVE
+                        # ==========================
+                        try:
+                            from modules.pdf_report import build_parte_pdf
+                            from modules.drive_upload import upload_pdf_base64
+                            
+                            # Generar PDF
+                            pdf_bytes = build_parte_pdf(
+                                obra_codigo=obra_codigo,
+                                obra_nombre=obra_nombre,
+                                avance=nuevo_avance,
+                                rol="jefe"
+                            )
+                            
+                            webapp_url, token = _get_drive_conf()
+                            
+                            if webapp_url and token and pdf_bytes:
+                                # Nombre del archivo
+                                fecha_str = nuevo_avance.get("fecha", "").replace("-", "")
+                                filename = f"PD_{obra_codigo}_{fecha_str}_JEFE.pdf"
+                                
+                                resultado = upload_pdf_base64(webapp_url, token, obra_codigo, filename, pdf_bytes)
+                                if resultado.get("status") == "success":
+                                    st.info(f"📤 PDF subido automáticamente a Drive: {filename}")
+                        except Exception as e:
+                            st.warning(f"⚠️ No se pudo subir PDF automáticamente a Drive: {str(e)}")
+
                         # 🧹 LIMPIEZA ORIGINAL
                         # ==========================
                         st.session_state.insumos_mo_confirmados = []
                         st.session_state.insumos_mat_confirmados = []
+                        st.session_state.insumos_eq_confirmados = []
+                        st.session_state.insumos_otros_confirmados = []
                         st.session_state.form_parte_diario_counter += 1
                         st.session_state.parte_enviado = True
 
@@ -2185,7 +3786,6 @@ if st.session_state["auth"] == "jefe":
                 # ==========================
                 if not st.session_state.get("whatsapp_enviado", False):
                     if numero_local_limpio:
-                        import urllib.parse
                         mensaje_encoded = urllib.parse.quote(mensaje)
                         url_whatsapp = f"https://wa.me/{numero_whatsapp_final}?text={mensaje_encoded}"
 
@@ -2242,8 +3842,8 @@ if st.session_state["auth"] == "jefe":
                     costos_validos, mensaje_costos = validar_costos_parte_diario(
                         st.session_state.insumos_mo_confirmados,
                         st.session_state.insumos_mat_confirmados,
-                        [],
-                        []
+                        st.session_state.insumos_eq_confirmados,
+                        st.session_state.insumos_otros_confirmados
                     )
 
                     if not es_valido:
@@ -2278,10 +3878,10 @@ if st.session_state["auth"] == "jefe":
                             st.write("**Responsable:**", item["responsable"])
                             st.write("**Avance del día:**", f"{item['avance_pct']}%")
                         with c2:
-                            partida = item.get("partida", {})
-                            if isinstance(partida, dict):
-                                st.write(f"**Partida:** {partida.get('nombre', 'N/A')}")
-                                st.write(f"**Rendimiento:** {partida.get('rendimiento', 0):.2f} {partida.get('unidad', '')}/día")
+                                partida = item.get("partida", {})
+                                if isinstance(partida, dict):
+                                    st.write(f"**Partida:** {partida.get('nombre', 'N/A')}")
+                                    st.write(f"**Rendimiento:** {partida.get('rendimiento', 0):.2f} {partida.get('unidad', '')}/día")
                         with c3:
                             partida = item.get("partida", {})
                             if isinstance(partida, dict):
@@ -2310,19 +3910,29 @@ if st.session_state["auth"] == "jefe":
                             if costos.get("materiales"):
                                 st.markdown("#### Materiales")
                                 st.dataframe(pd.DataFrame(costos["materiales"]), use_container_width=True, hide_index=True)
+                            if costos.get("equipos"):
+                                st.markdown("#### Equipos")
+                                st.dataframe(pd.DataFrame(costos["equipos"]), use_container_width=True, hide_index=True)
+                            if costos.get("otros"):
+                                st.markdown("#### Otros")
+                                st.dataframe(pd.DataFrame(costos["otros"]), use_container_width=True, hide_index=True)
 
                             if totales:
                                 total_mo = float(totales.get('mano_de_obra', 0) or 0)
                                 total_mat = float(totales.get('materiales', 0) or 0)
-                                total_general = total_mo + total_mat
+                                total_eq = float(totales.get('equipos', 0) or 0)
+                                total_otros = float(totales.get('otros', 0) or 0)
+                                total_general = total_mo + total_mat + total_eq + total_otros
                                 st.markdown("#### Resumen de Totales")
-                                c1, c2, c3 = st.columns(3)
+                                c1, c2, c3, c4 = st.columns(4)
                                 with c1:
                                     st.metric("Mano de Obra", f"S/. {total_mo:.2f}")
                                 with c2:
                                     st.metric("Materiales", f"S/. {total_mat:.2f}")
                                 with c3:
-                                    st.metric("💰 TOTAL", f"S/. {total_general:.2f}")
+                                    st.metric("Equipos", f"S/. {total_eq:.2f}")
+                                with c4:
+                                    st.metric("Otros", f"S/. {total_otros:.2f}")
 
                         if item.get("obs"):
                             st.markdown("### 📝 Observaciones")
@@ -2474,22 +4084,137 @@ if st.session_state["auth"] == "jefe":
                 if "form_crono_counter" not in st.session_state:
                     st.session_state.form_crono_counter = 0
 
-                with st.form(key=f"form_add_crono_{st.session_state.form_crono_counter}"):
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        crono_nombre = st.text_input("📋 Nombre de la Partida*", placeholder="Ej: Cimentación, Acabados, Instalaciones Eléctricas")
-                    with c2:
-                        crono_monto = st.number_input("💵 Monto Planificado (S/.)*", min_value=0.0, step=100.0, format="%.2f")
+                # Determinar valores iniciales para el formulario según el modo
+                if st.session_state.modo_edicion_partida and st.session_state.partida_editando_data:
+                    # Modo edición: cargar datos de la partida seleccionada
+                    partida_edit = st.session_state.partida_editando_data
+                    nombre_inicial = partida_edit.get("nombre", "")
                     
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        crono_inicio = st.date_input("📅 Fecha de Inicio*", value=date.today())
-                    with c2:
-                        crono_fin = st.date_input("📅 Fecha de Fin*", value=date.today())
+                    monto_inicial = float(partida_edit.get("monto_planificado", 0.0) or 0.0)
+                    if monto_inicial == 0:
+                        monto_str = ""
+                    else:
+                        monto_str = f"{monto_inicial:.2f}".rstrip('0').rstrip('.') if '.' in f"{monto_inicial:.2f}" else f"{monto_inicial:.2f}"
+                    
+                    fecha_inicio_inicial = pd.to_datetime(partida_edit.get("fecha_inicio", date.today())).date()
+                    fecha_fin_inicial = pd.to_datetime(partida_edit.get("fecha_fin", date.today())).date()
+                    descripcion_inicial = partida_edit.get("descripcion", "")
+                    estado_inicial = partida_edit.get("estado", "Aprobado")
+                else:
+                    # Modo agregar: valores por defecto
+                    nombre_inicial = ""
+                    monto_str = ""
+                    fecha_inicio_inicial = date.today()
+                    fecha_fin_inicial = date.today()
+                    descripcion_inicial = ""
+                    estado_inicial = "Aprobado"
 
-                    crono_desc = st.text_area("📝 Descripción (opcional)", placeholder="Detalles adicionales sobre la partida...", height=80)
+                # Formulario único para agregar/editar
+                with st.form(key=f"form_crono_{st.session_state.form_crono_counter}"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        crono_nombre = st.text_input("📋 Nombre de la Partida*", placeholder="Ej: Cimentación, Acabados, Instalaciones Eléctricas", value=nombre_inicial)
+                    with col2:
+                        # Campo de monto estilo Yape
+                        crono_monto_text = st.text_input(
+                            "💵 Monto Planificado (S/.)*",
+                            placeholder="0",
+                            value=monto_str,
+                            key=f"crono_monto_{st.session_state.form_crono_counter}"
+                        )
+                        # Convertir a float para validación
+                        try:
+                            crono_monto = float(crono_monto_text) if crono_monto_text.strip() else 0.0
+                        except ValueError:
+                            crono_monto = 0.0
+                            if crono_monto_text.strip():
+                                st.error("❌ Ingresa un número válido")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        crono_inicio = st.date_input("📅 Fecha de Inicio*", value=fecha_inicio_inicial)
+                    with col2:
+                        crono_fin = st.date_input("📅 Fecha de Fin*", value=fecha_fin_inicial)
 
-                    if st.form_submit_button("✅ Agregar Partida (Aprobado)", use_container_width=True, type="primary"):
+                    crono_desc = st.text_area("📝 Descripción (opcional)", placeholder="Detalles adicionales sobre la partida...", height=80, value=descripcion_inicial)
+
+                    # Campo de estado visible solo en modo edición
+                    if st.session_state.modo_edicion_partida:
+                        crono_estado = st.selectbox("Estado", ["Pendiente", "Aprobado"], index=0 if estado_inicial == "Pendiente" else 1)
+                    else:
+                        crono_estado = "Aprobado"  # Valor por defecto
+
+                    # Botones dinámicos según el modo
+                    if st.session_state.modo_edicion_partida:
+                        # Modo edición: mostrar botones de guardar, eliminar y cancelar
+                        col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
+                        with col_b1:
+                            guardar_edit = st.form_submit_button("✅ Guardar", use_container_width=True, type="primary")
+                        with col_b2:
+                            eliminar_edit = st.form_submit_button("🗑️ Eliminar", use_container_width=True, type="secondary")
+                        with col_b3:
+                            cancelar_edit = st.form_submit_button("❌ Cancelar", use_container_width=True)
+                        with col_b4:
+                            st.write("")  # Espacio vacío
+                    else:
+                        # Modo agregar: mostrar botón principal
+                        agregar_submit = st.form_submit_button("✅ Agregar Partida (Aprobado)", use_container_width=True, type="primary")
+
+                # Procesar acciones del formulario
+                if st.session_state.modo_edicion_partida:
+                    # Estamos en modo edición
+                    partida_id = st.session_state.partida_editando_id
+                    
+                    if guardar_edit:
+                        ok, msg = validar_partida_cronograma(crono_nombre, crono_inicio, crono_fin, crono_monto)
+                        if not ok:
+                            st.error(f"❌ {msg}")
+                        else:
+                            payload = {
+                                "nombre": crono_nombre.strip(),
+                                "fecha_inicio": str(crono_inicio),
+                                "fecha_fin": str(crono_fin),
+                                "monto_planificado": float(crono_monto),
+                                "descripcion": crono_desc.strip(),
+                                "estado": crono_estado,
+                                "creado_por": st.session_state.partida_editando_data.get("creado_por", "jefe"),
+                            }
+                            ok2, msg2 = actualizar_partida_cronograma(obra_codigo, partida_id, payload)
+                            if ok2:
+                                st.success("✅ Partida actualizada correctamente")
+                                # Resetear modo edición
+                                st.session_state.modo_edicion_partida = False
+                                st.session_state.partida_editando_id = None
+                                st.session_state.partida_editando_data = None
+                                st.session_state.form_crono_counter += 1
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {msg2}")
+                    
+                    elif eliminar_edit:
+                        ok3, msg3 = eliminar_partida_cronograma(obra_codigo, partida_id)
+                        if ok3:
+                            st.success("✅ Partida eliminada correctamente")
+                            # Resetear modo edición
+                            st.session_state.modo_edicion_partida = False
+                            st.session_state.partida_editando_id = None
+                            st.session_state.partida_editando_data = None
+                            st.session_state.form_crono_counter += 1
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {msg3}")
+                    
+                    elif cancelar_edit:
+                        # Cancelar edición
+                        st.session_state.modo_edicion_partida = False
+                        st.session_state.partida_editando_id = None
+                        st.session_state.partida_editando_data = None
+                        st.session_state.form_crono_counter += 1
+                        st.rerun()
+                
+                else:
+                    # Modo agregar
+                    if agregar_submit:
                         ok, msg = validar_partida_cronograma(crono_nombre, crono_inicio, crono_fin, crono_monto)
                         if not ok:
                             st.error(f"❌ {msg}")
@@ -2535,111 +4260,125 @@ if st.session_state["auth"] == "jefe":
                     
                     partidas_filtradas = cronograma_all if filtro_estado == "Todos" else [p for p in cronograma_all if p.get("estado") == filtro_estado]
                     
-                    # Tabla de partidas
-                    dfc = pd.DataFrame(partidas_filtradas)
-                    if not dfc.empty:
-                        cols_mostrar = ["nombre", "fecha_inicio", "fecha_fin", "monto_planificado", "estado", "creado_por"]
-                        cols_existentes = [c for c in cols_mostrar if c in dfc.columns]
+                    if partidas_filtradas:
+                        # Crear encabezados de la tabla
+                        col_nom, col_ini, col_fin, col_mon, col_est, col_cre, col_acc = st.columns([2.5, 1, 1, 1.5, 1, 1.2, 1.8])
                         
-                        st.dataframe(
-                            dfc[cols_existentes].rename(columns={
-                                "nombre": "Partida",
-                                "fecha_inicio": "Inicio",
-                                "fecha_fin": "Fin",
-                                "monto_planificado": "Monto (S/.)",
-                                "estado": "Estado",
-                                "creado_por": "Creado por",
-                            }),
-                            use_container_width=True,
-                            hide_index=True,
-                            column_config={
-                                "Monto (S/.)": st.column_config.NumberColumn(format="S/. %.2f")
-                            }
-                        )
-                    
-                    st.markdown("#### ✏️ Editar / Eliminar Partida")
-                    
-                    if "idx_partida_crono" not in st.session_state:
-                        st.session_state.idx_partida_crono = 0
-
-                    opciones = [
-                        f"{it.get('nombre', '(sin nombre)')} - S/. {float(it.get('monto_planificado', 0) or 0):,.2f} [{it.get('estado', 'Aprobado')}]"
-                        for it in cronograma_all
-                    ]
-
-                    sel = st.selectbox(
-                        "Selecciona una partida para editar:",
-                        opciones,
-                        index=min(st.session_state.idx_partida_crono, len(opciones) - 1),
-                        key="sel_partida_crono"
-                    )
-                    st.session_state.idx_partida_crono = opciones.index(sel)
-
-                    partida_sel = cronograma_all[st.session_state.idx_partida_crono]
-                    partida_id = partida_sel.get("id")
-
-                    with st.form("form_edit_crono"):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            n_nombre = st.text_input("Nombre", value=partida_sel.get("nombre", ""))
-                        with c2:
-                            n_monto = st.number_input(
-                                "Monto (S/.)",
-                                min_value=0.0,
-                                step=100.0,
-                                format="%.2f",
-                                value=float(partida_sel.get("monto_planificado", 0.0) or 0.0)
-                            )
+                        with col_nom:
+                            st.markdown("**Partida**")
+                        with col_ini:
+                            st.markdown("**Inicio**")
+                        with col_fin:
+                            st.markdown("**Fin**")
+                        with col_mon:
+                            st.markdown("**Monto (S/.)**")
+                        with col_est:
+                            st.markdown("**Estado**")
+                        with col_cre:
+                            st.markdown("**Creado por**")
+                        with col_acc:
+                            st.markdown("**Acciones**")
                         
-                        c1, c2, c3 = st.columns(3)
-                        with c1:
-                            n_inicio = st.date_input("Inicio", value=pd.to_datetime(partida_sel.get("fecha_inicio", date.today())).date())
-                        with c2:
-                            n_fin = st.date_input("Fin", value=pd.to_datetime(partida_sel.get("fecha_fin", date.today())).date())
-                        with c3:
-                            n_estado = st.selectbox(
-                                "Estado",
-                                ["Pendiente", "Aprobado"],
-                                index=0 if partida_sel.get("estado") == "Pendiente" else 1
-                            )
-
-                        n_desc = st.text_area("Descripción", value=partida_sel.get("descripcion", ""), height=80)
-
-                        colx, coly = st.columns(2)
-                        with colx:
-                            guardar = st.form_submit_button("💾 Guardar Cambios", use_container_width=True, type="primary")
-                        with coly:
-                            eliminar = st.form_submit_button("🗑️ Eliminar Partida", use_container_width=True)
-
-                    if guardar:
-                        ok, msg = validar_partida_cronograma(n_nombre, n_inicio, n_fin, n_monto)
-                        if not ok:
-                            st.error(f"❌ {msg}")
-                        else:
-                            payload = {
-                                "nombre": n_nombre.strip(),
-                                "fecha_inicio": str(n_inicio),
-                                "fecha_fin": str(n_fin),
-                                "monto_planificado": float(n_monto),
-                                "descripcion": n_desc.strip(),
-                                "estado": n_estado,
-                                "creado_por": partida_sel.get("creado_por", "jefe"),
-                            }
-                            ok2, msg2 = actualizar_partida_cronograma(obra_codigo, partida_id, payload)
-                            if ok2:
-                                st.success("✅ Partida actualizada correctamente")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {msg2}")
-
-                    if eliminar:
-                        ok3, msg3 = eliminar_partida_cronograma(obra_codigo, partida_id)
-                        if ok3:
-                            st.success("✅ Partida eliminada correctamente")
-                            st.session_state.idx_partida_crono = 0
-                            st.rerun()
-                        else:
-                            st.error(f"❌ {msg3}")
+                        st.markdown("---")
+                        
+                        # Mostrar cada partida como una fila
+                        for idx, partida in enumerate(partidas_filtradas):
+                            partida_id = partida.get("id", "")
+                            nombre = partida.get("nombre", "")
+                            inicio = partida.get("fecha_inicio", "")
+                            fin = partida.get("fecha_fin", "")
+                            monto = float(partida.get("monto_planificado", 0) or 0)
+                            estado = partida.get("estado", "")
+                            creado_por = partida.get("creado_por", "")
+                            
+                            col1, col2, col3, col4, col5, col6, col7 = st.columns([2.5, 1, 1, 1.5, 1, 1.2, 1.8])
+                            
+                            with col1:
+                                st.write(nombre)
+                            
+                            with col2:
+                                st.write(inicio)
+                            
+                            with col3:
+                                st.write(fin)
+                            
+                            with col4:
+                                st.write(f"S/. {monto:,.2f}")
+                            
+                            with col5:
+                                if estado == "Aprobado":
+                                    st.markdown(f"<span style='background-color:#e8f5e9; color:#2e7d32; padding:2px 8px; border-radius:12px; font-size:0.8rem;'>{estado}</span>", unsafe_allow_html=True)
+                                else:
+                                    st.markdown(f"<span style='background-color:#fff3e0; color:#ef6c00; padding:2px 8px; border-radius:12px; font-size:0.8rem;'>{estado}</span>", unsafe_allow_html=True)
+                            
+                            with col6:
+                                st.write(creado_por)
+                            
+                            with col7:
+                                # Contenedor para los botones de acción
+                                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                                
+                                with col_btn1:
+                                    # Botón de aprobar (solo si está pendiente)
+                                    if estado == "Pendiente":
+                                        if st.button("✅", key=f"aprobar_tabla_{partida_id}_{idx}", help="Aprobar partida"):
+                                            payload = dict(partida)
+                                            payload["estado"] = "Aprobado"
+                                            ok, msg = actualizar_partida_cronograma(obra_codigo, partida_id, payload)
+                                            if ok:
+                                                st.success("✅ Partida aprobada")
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ {msg}")
+                                    else:
+                                        st.write(" ")  # Espacio vacío para mantener alineación
+                                
+                                with col_btn2:
+                                    # Botón de editar
+                                    if st.button("✏️", key=f"editar_tabla_{partida_id}_{idx}", help="Editar partida"):
+                                        # Activar modo edición
+                                        st.session_state.modo_edicion_partida = True
+                                        st.session_state.partida_editando_id = partida_id
+                                        st.session_state.partida_editando_data = partida
+                                        st.rerun()
+                                
+                                with col_btn3:
+                                    # Botón de eliminar
+                                    if st.button("🗑️", key=f"eliminar_tabla_{partida_id}_{idx}", help="Eliminar partida"):
+                                        # Mostrar confirmación
+                                        st.session_state.partida_eliminar_id = partida_id
+                                        st.session_state.partida_eliminar_nombre = nombre
+                                        st.session_state.mostrar_confirmacion_eliminar_partida = True
+                                        st.rerun()
+                            
+                            # Añadir una línea separadora después de cada fila excepto la última
+                            if idx < len(partidas_filtradas) - 1:
+                                st.markdown("---")
+                        
+                        # Modal de confirmación para eliminar partida desde la tabla
+                        if st.session_state.get("mostrar_confirmacion_eliminar_partida", False):
+                            partida_id_elim = st.session_state.partida_eliminar_id
+                            partida_nom_elim = st.session_state.partida_eliminar_nombre
+                            with st.expander(f"⚠️ Confirmar eliminación", expanded=True):
+                                st.warning(f"¿Estás seguro de eliminar la partida **{partida_nom_elim}**?")
+                                
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    if st.button("✅ Sí, eliminar", use_container_width=True, type="primary", key="confirm_elim_partida"):
+                                        ok, msg = eliminar_partida_cronograma(obra_codigo, partida_id_elim)
+                                        if ok:
+                                            st.success("✅ Partida eliminada")
+                                            st.session_state.mostrar_confirmacion_eliminar_partida = False
+                                            st.rerun()
+                                        else:
+                                            st.error(f"❌ {msg}")
+                                
+                                with col2:
+                                    if st.button("❌ Cancelar", use_container_width=True, key="cancel_elim_partida"):
+                                        st.session_state.mostrar_confirmacion_eliminar_partida = False
+                                        st.rerun()
+                    else:
+                        st.info(f"No hay partidas con estado '{filtro_estado}'")
 
             # ===== TAB: CURVA S =====
             with tab_curva:
@@ -2649,69 +4388,19 @@ if st.session_state["auth"] == "jefe":
                 cronograma_all = obtener_cronograma_obra(obra_codigo) or []
                 render_curva_s(cronograma_all, avances, rol="jefe")
 
-
             # ===== TAB: HITOS DE PAGO =====
             with tab_hitos:
                 st.markdown("### 💰 Gestión de Hitos de Pago")
                 st.caption("Registra y controla los hitos de pago del proyecto (valorizaciones, adelantos, liquidaciones)")
 
-                if "form_hito_counter" not in st.session_state:
-                    st.session_state.form_hito_counter = 0
-
-                with st.form(key=f"form_add_hito_{st.session_state.form_hito_counter}"):
-                    c1, c2, c3 = st.columns([2, 1, 1])
-                    with c1:
-                        h_desc = st.text_input("Descripción", placeholder="Ej: Valorización N°01")
-                    with c2:
-                        h_fecha = st.date_input("📅 Fecha Estimada*", value=date.today())
-                    with c3:
-                        h_monto = st.number_input("Monto (S/.)", min_value=0.0, step=0.01, format="%.2f")
-
-                    h_estado = st.selectbox(
-                        "Estado",
-                        ["Pendiente", "Pagado"],
-                        help="Marca como Pagado si ya se procesó el pago"
-                    )
-
-                    h_obs = st.text_area(
-                        "📝 Observación (opcional)",
-                        placeholder="Sustento enviado, OC aprobada, documento por adjuntar, etc.",
-                        height=80
-                    )
-
-                    if st.form_submit_button(f"✅ Agregar Hito ({h_estado})", use_container_width=True, type="primary"):
-                        ok, msg = validar_hito_pago(h_desc, h_fecha, h_monto)
-                        if not ok:
-                            st.error(f"❌ {msg}")
-                        else:
-                            hito = {
-                                "descripcion": h_desc.strip(),
-                                "fecha": str(h_fecha),
-                                "monto": float(h_monto),
-                                "estado": h_estado,
-                                "observacion": h_obs.strip(),
-                                "creado_por": st.session_state.get("usuario_logueado", "jefe"),
-                            }
-                            ok2, msg2 = agregar_hito_pago(obra_codigo, hito)
-                            if ok2:
-                                st.success("✅ Hito de pago registrado correctamente")
-                                st.session_state.form_hito_counter += 1
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {msg2}")
-
-                st.divider()
-
-                # Lista de hitos
+                # Cargar datos
                 hitos = obtener_hitos_pago_obra(obra_codigo) or []
                 for h in hitos:
                     h.setdefault("estado", "Pendiente")
                     h.setdefault("creado_por", "jefe")
 
-                if not hitos:
-                    st.info("📭 No hay hitos de pago registrados. Agrega el primer hito para comenzar el seguimiento.")
-                else:
-                    # Resumen de hitos
+                # Resumen de hitos (solo para visualización)
+                if hitos:
                     resumen_h = calcular_resumen_hitos(hitos)
                     
                     st.markdown("#### 💼 Resumen Financiero de Hitos")
@@ -2747,10 +4436,179 @@ if st.session_state["auth"] == "jefe":
                         progress_hitos = resumen_h['pagado'] / resumen_h['total_hitos']
                         st.progress(progress_hitos)
                         st.caption(f"S/. {resumen_h['pagado']:,.2f} de S/. {resumen_h['total_hitos']:,.2f} pagados")
+                    
+                    st.divider()
 
+                # ========== FORMULARIO PARA AGREGAR/EDITAR HITO ==========
+                st.markdown("#### ➕ Registrar Hito de Pago")
+
+                # Determinar valores iniciales para el formulario según el modo
+                if st.session_state.modo_edicion_hito and st.session_state.hito_editando_data:
+                    # Modo edición: cargar datos del hito seleccionado
+                    hito_edit = st.session_state.hito_editando_data
+                    descripcion_inicial = hito_edit.get("descripcion", "")
+                    fecha_inicial = pd.to_datetime(hito_edit.get("fecha", date.today())).date()
+                    
+                    monto_inicial = float(hito_edit.get("monto", 0.0) or 0.0)
+                    if monto_inicial == 0:
+                        monto_str = ""
+                    else:
+                        monto_str = f"{monto_inicial:.2f}".rstrip('0').rstrip('.') if '.' in f"{monto_inicial:.2f}" else f"{monto_inicial:.2f}"
+                    
+                    estado_inicial = hito_edit.get("estado", "Pendiente")
+                    observacion_inicial = hito_edit.get("observacion", "")
+                else:
+                    # Modo agregar: valores por defecto
+                    descripcion_inicial = ""
+                    fecha_inicial = date.today()
+                    monto_str = ""
+                    estado_inicial = "Pendiente"
+                    observacion_inicial = ""
+
+                # Formulario único para agregar/editar
+                with st.form(key=f"form_hito_{st.session_state.form_hito_counter}"):
+                    c1, c2, c3 = st.columns([2, 1, 1])
+                    with c1:
+                        h_desc = st.text_input("📋 Descripción", placeholder="Ej: Valorización N°01", value=descripcion_inicial)
+                    with c2:
+                        h_fecha = st.date_input("📅 Fecha Estimada*", value=fecha_inicial)
+                    with c3:
+                        # Campo de monto estilo Yape
+                        h_monto_text = st.text_input(
+                            "💰 Monto (S/.)",
+                            placeholder="0",
+                            value=monto_str,
+                            key=f"hito_monto_{st.session_state.form_hito_counter}"
+                        )
+                        # Convertir a float para validación
+                        try:
+                            h_monto = float(h_monto_text) if h_monto_text.strip() else 0.0
+                        except ValueError:
+                            h_monto = 0.0
+                            if h_monto_text.strip():
+                                st.error("❌ Ingresa un número válido")
+
+                    # Campo de estado visible en ambos modos
+                    st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: rgb(49, 51, 63);"><strong>📌 Estado</strong></p>', unsafe_allow_html=True)
+                    h_estado = st.selectbox(
+                        "📌 Estado",
+                        ["Pendiente", "Pagado"],
+                        index=0 if estado_inicial == "Pendiente" else 1,
+                        help="Marca como Pagado si ya se procesó el pago",
+                        label_visibility="collapsed"
+                    )
+
+                    h_obs = st.text_area(
+                        "📝 Observación (opcional)",
+                        placeholder="Sustento enviado, OC aprobada, documento por adjuntar, etc.",
+                        height=80,
+                        value=observacion_inicial
+                    )
+
+                    # Botones dinámicos según el modo
+                    if st.session_state.modo_edicion_hito:
+                        # Modo edición: mostrar botones de guardar, eliminar y cancelar
+                        col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
+                        with col_b1:
+                            guardar_edit = st.form_submit_button("✅ Guardar", use_container_width=True, type="primary")
+                        with col_b2:
+                            eliminar_edit = st.form_submit_button("🗑️ Eliminar", use_container_width=True, type="secondary")
+                        with col_b3:
+                            cancelar_edit = st.form_submit_button("❌ Cancelar", use_container_width=True)
+                        with col_b4:
+                            st.write("")  # Espacio vacío
+                    else:
+                        # Modo agregar: mostrar botón principal
+                        agregar_submit = st.form_submit_button("✅ Agregar Hito (Pendiente)", use_container_width=True, type="primary")
+
+                # Procesar acciones del formulario
+                if st.session_state.modo_edicion_hito:
+                    # Estamos en modo edición
+                    hito_id = st.session_state.hito_editando_id
+                    
+                    if guardar_edit:
+                        ok, msg = validar_hito_pago(h_desc, h_fecha, h_monto)
+                        if not ok:
+                            st.error(f"❌ {msg}")
+                        else:
+                            payload = {
+                                "descripcion": h_desc.strip(),
+                                "fecha": str(h_fecha),
+                                "monto": float(h_monto),
+                                "estado": h_estado,
+                                "observacion": h_obs.strip(),
+                                "creado_por": st.session_state.hito_editando_data.get("creado_por", "jefe"),
+                            }
+                            ok2, msg2 = actualizar_hito_pago(obra_codigo, hito_id, payload)
+                            if ok2:
+                                st.success("✅ Hito actualizado correctamente")
+                                # Resetear modo edición
+                                st.session_state.modo_edicion_hito = False
+                                st.session_state.hito_editando_id = None
+                                st.session_state.hito_editando_data = None
+                                st.session_state.form_hito_counter += 1
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {msg2}")
+                    
+                    elif eliminar_edit:
+                        ok3, msg3 = eliminar_hito_pago(obra_codigo, hito_id)
+                        if ok3:
+                            st.success("✅ Hito eliminado correctamente")
+                            # Resetear modo edición
+                            st.session_state.modo_edicion_hito = False
+                            st.session_state.hito_editando_id = None
+                            st.session_state.hito_editando_data = None
+                            st.session_state.form_hito_counter += 1
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {msg3}")
+                    
+                    elif cancelar_edit:
+                        # Cancelar edición
+                        st.session_state.modo_edicion_hito = False
+                        st.session_state.hito_editando_id = None
+                        st.session_state.hito_editando_data = None
+                        st.session_state.form_hito_counter += 1
+                        st.rerun()
+                
+                else:
+                    # Modo agregar
+                    if agregar_submit:
+                        ok, msg = validar_hito_pago(h_desc, h_fecha, h_monto)
+                        if not ok:
+                            st.error(f"❌ {msg}")
+                        else:
+                            hito = {
+                                "descripcion": h_desc.strip(),
+                                "fecha": str(h_fecha),
+                                "monto": float(h_monto),
+                                "estado": h_estado,
+                                "observacion": h_obs.strip(),
+                                "creado_por": st.session_state.get("usuario_logueado", "jefe"),
+                            }
+                            ok2, msg2 = agregar_hito_pago(obra_codigo, hito)
+                            if ok2:
+                                st.success("✅ Hito de pago registrado correctamente")
+                                st.session_state.form_hito_counter += 1
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {msg2}")
+
+                st.divider()
+
+                # ========== LISTADO DE HITOS ==========
+                hitos = obtener_hitos_pago_obra(obra_codigo) or []
+                for h in hitos:
+                    h.setdefault("estado", "Pendiente")
+                    h.setdefault("creado_por", "jefe")
+
+                if not hitos:
+                    st.info("📭 No hay hitos de pago registrados. Agrega el primer hito para comenzar el seguimiento.")
+                else:
                     st.markdown(f"#### 📋 Listado de Hitos ({len(hitos)} total)")
                     
-                    # Filtro
+                    # Filtro por estado
                     col1, col2 = st.columns([1, 3])
                     with col1:
                         filtro_hitos = st.selectbox(
@@ -2761,206 +4619,436 @@ if st.session_state["auth"] == "jefe":
                     
                     hitos_filtrados = hitos if filtro_hitos == "Todos" else [h for h in hitos if h.get("estado") == filtro_hitos]
                     
-                    # Tabla de hitos
                     if hitos_filtrados:
-                        dfh = pd.DataFrame(hitos_filtrados)
-                        cols_mostrar = ["descripcion", "fecha", "monto", "estado", "observacion"]
-                        cols_existentes = [c for c in cols_mostrar if c in dfh.columns]
+                        # Crear encabezados de la tabla
+                        col_desc, col_fec, col_mon, col_est, col_cre, col_acc = st.columns([2.5, 1, 1.2, 1, 1.2, 1.8])
                         
-                        st.dataframe(
-                            dfh[cols_existentes].rename(columns={
-                                "descripcion": "Descripción",
-                                "fecha": "Fecha",
-                                "monto": "Monto (S/.)",
-                                "estado": "Estado",
-                                "observacion": "Observación",
-                            }),
-                            use_container_width=True,
-                            hide_index=True,
-                            column_config={
-                                "Monto (S/.)": st.column_config.NumberColumn(format="S/. %.2f"),
-                                "Estado": st.column_config.TextColumn(
-                                    width="small",
-                                )
-                            }
-                        )
+                        with col_desc:
+                            st.markdown("**Descripción**")
+                        with col_fec:
+                            st.markdown("**Fecha**")
+                        with col_mon:
+                            st.markdown("**Monto (S/.)**")
+                        with col_est:
+                            st.markdown("**Estado**")
+                        with col_cre:
+                            st.markdown("**Creado por**")
+                        with col_acc:
+                            st.markdown("**Acciones**")
+                        
+                        st.markdown("---")
+                        
+                        # Mostrar cada hito como una fila
+                        for idx, hito in enumerate(hitos_filtrados):
+                            hito_id = hito.get("id", "")
+                            descripcion = hito.get("descripcion", "")
+                            fecha = hito.get("fecha", "")
+                            monto = float(hito.get("monto", 0) or 0)
+                            estado = hito.get("estado", "")
+                            creado_por = hito.get("creado_por", "")
+                            observacion = hito.get("observacion", "")
+                            
+                            col1, col2, col3, col4, col5, col6 = st.columns([2.5, 1, 1.2, 1, 1.2, 1.8])
+                            
+                            with col1:
+                                st.write(descripcion)
+                            
+                            with col2:
+                                st.write(fecha)
+                            
+                            with col3:
+                                st.write(f"S/. {monto:,.2f}")
+                            
+                            with col4:
+                                if estado == "Pagado":
+                                    st.markdown(f"<span style='background-color:#e8f5e9; color:#2e7d32; padding:2px 8px; border-radius:12px; font-size:0.8rem;'>{estado}</span>", unsafe_allow_html=True)
+                                else:
+                                    st.markdown(f"<span style='background-color:#fff3e0; color:#ef6c00; padding:2px 8px; border-radius:12px; font-size:0.8rem;'>{estado}</span>", unsafe_allow_html=True)
+                            
+                            with col5:
+                                st.write(creado_por)
+                            
+                            with col6:
+                                # Contenedor para los botones de acción
+                                col_btn1, col_btn2, col_btn3 = st.columns(3)
+                                
+                                with col_btn1:
+                                    # Botón de aprobar/cambiar estado (solo si está pendiente)
+                                    if estado == "Pendiente":
+                                        if st.button("✅", key=f"aprobar_hito_{hito_id}_{idx}", help="Marcar como Pagado"):
+                                            payload = dict(hito)
+                                            payload["estado"] = "Pagado"
+                                            ok, msg = actualizar_hito_pago(obra_codigo, hito_id, payload)
+                                            if ok:
+                                                st.success("✅ Hito marcado como Pagado")
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ {msg}")
+                                    else:
+                                        st.write(" ")  # Espacio vacío para mantener alineación
+                                
+                                with col_btn2:
+                                    # Botón de editar
+                                    if st.button("✏️", key=f"editar_hito_{hito_id}_{idx}", help="Editar hito"):
+                                        # Activar modo edición
+                                        st.session_state.modo_edicion_hito = True
+                                        st.session_state.hito_editando_id = hito_id
+                                        st.session_state.hito_editando_data = hito
+                                        st.rerun()
+                                
+                                with col_btn3:
+                                    # Botón de eliminar
+                                    if st.button("🗑️", key=f"eliminar_hito_{hito_id}_{idx}", help="Eliminar hito"):
+                                        # Mostrar confirmación
+                                        st.session_state.hito_eliminar_id = hito_id
+                                        st.session_state.hito_eliminar_descripcion = descripcion
+                                        st.session_state.mostrar_confirmacion_eliminar_hito = True
+                                        st.rerun()
+                            
+                            # Añadir una línea separadora después de cada fila excepto la última
+                            if idx < len(hitos_filtrados) - 1:
+                                st.markdown("---")
+                        
+                        # Modal de confirmación para eliminar hito
+                        if st.session_state.get("mostrar_confirmacion_eliminar_hito", False):
+                            hito_id_elim = st.session_state.hito_eliminar_id
+                            hito_desc_elim = st.session_state.hito_eliminar_descripcion
+                            with st.expander(f"⚠️ Confirmar eliminación", expanded=True):
+                                st.warning(f"¿Estás seguro de eliminar el hito **{hito_desc_elim}**?")
+                                
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    if st.button("✅ Sí, eliminar", use_container_width=True, type="primary", key="confirm_elim_hito"):
+                                        ok, msg = eliminar_hito_pago(obra_codigo, hito_id_elim)
+                                        if ok:
+                                            st.success("✅ Hito eliminado")
+                                            st.session_state.mostrar_confirmacion_eliminar_hito = False
+                                            st.session_state.form_hito_counter += 1
+                                            st.rerun()
+                                        else:
+                                            st.error(f"❌ {msg}")
+                                
+                                with col2:
+                                    if st.button("❌ Cancelar", use_container_width=True, key="cancel_elim_hito"):
+                                        st.session_state.mostrar_confirmacion_eliminar_hito = False
+                                        st.rerun()
                     else:
                         st.info(f"No hay hitos con estado '{filtro_hitos}'")
 
-                    st.markdown("#### ✏️ Editar / Cambiar Estado / Eliminar Hito")
-                    
-                    if "idx_hito_sel" not in st.session_state:
-                        st.session_state.idx_hito_sel = 0
+        # ===== TAB: CAJA CHICA =====
+        with tab4:
+            st.markdown("### 💰 Caja Chica")
+            mostrar_caja_chica()
 
-                    opciones_h = [
-                        f"{h.get('descripcion', '(sin descripción)')} - S/. {float(h.get('monto', 0) or 0):,.2f} [{h.get('estado', 'Pendiente')}]"
-                        for h in hitos
-                    ]
-                    
-                    sel_h = st.selectbox(
-                        "Selecciona un hito para editar:",
-                        opciones_h,
-                        index=min(st.session_state.idx_hito_sel, len(opciones_h) - 1),
-                        key="sel_hito"
+        # ===== TAB: DONACIONES (PRINCIPAL) =====
+        with tab5:
+            st.markdown("### 🎁 Gestión de Donaciones")
+            st.caption("Registro de aportes externos efectivo o material/insumo que amplían los recursos del proyecto")
+
+            obra_codigo_tab = st.session_state.get("obra_seleccionada", "")
+            presupuesto_actual = obtener_presupuesto_obra(obra_codigo_tab)
+            donaciones_obra = obtener_donaciones_obra(obra_codigo_tab) or []
+
+            # Resumen de donaciones
+            if donaciones_obra:
+                resumen = calcular_resumen_donaciones(donaciones_obra)
+                impacto = impacto_donacion_en_presupuesto(presupuesto_actual, donaciones_obra)
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric(
+                        "💵 Efectivo Donado",
+                        f"S/. {resumen['total_efectivo']:,.2f}",
+                        help="Dinero en efectivo recibido"
                     )
-                    st.session_state.idx_hito_sel = opciones_h.index(sel_h)
+                with col2:
+                    st.metric(
+                        "📦 Material/Insumo",
+                        f"S/. {resumen['total_especie']:,.2f}",
+                        help="Valor de mercado de materiales/insumos donados"
+                    )
+                with col3:
+                    st.metric(
+                        "🎁 Total Donaciones",
+                        f"S/. {resumen['total_general']:,.2f}",
+                        help="Aporte total en valor"
+                    )
+                with col4:
+                    st.metric(
+                        "📋 Cantidad de Donaciones",
+                        resumen['cantidad_donaciones'],
+                        help="Número total de donaciones registradas"
+                    )
 
-                    h_sel = hitos[st.session_state.idx_hito_sel]
-                    h_id = h_sel.get("id")
+                st.divider()
 
-                    # Botón rápido para marcar como pagado
-                    if h_sel.get("estado") == "Pendiente":
-                        if st.button("✅ Marcar como PAGADO", use_container_width=True, type="primary"):
-                            payload = dict(h_sel)
-                            payload["estado"] = "Pagado"
-                            ok, msg = actualizar_hito_pago(obra_codigo, h_id, payload)
-                            if ok:
-                                st.success("✅ Hito marcado como Pagado")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {msg}")
+                # ========== IMPACTO EN PRESUPUESTO ==========
+                st.markdown("#### 📈 Impacto en Presupuesto")
 
-                    with st.form("form_edit_hito"):
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            e_desc = st.text_input("Descripción", value=h_sel.get("descripcion", ""))
-                        with c2:
-                            e_monto = st.number_input(
-                                "Monto (S/.)",
-                                min_value=0.0,
-                                step=100.0,
-                                format="%.2f",
-                                value=float(h_sel.get("monto", 0.0) or 0.0)
-                            )
-                        
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            e_fecha = st.date_input("Fecha", value=pd.to_datetime(h_sel.get("fecha", date.today())).date())
-                        with c2:
-                            e_estado = st.selectbox(
-                                "Estado",
-                                ["Pendiente", "Pagado"],
-                                index=0 if h_sel.get("estado") == "Pendiente" else 1
-                            )
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric(
+                        "Presupuesto Original",
+                        f"S/. {impacto['presupuesto_original']:,.2f}"
+                    )
+                with col2:
+                    st.metric(
+                        "Total Donaciones",
+                        f"S/. {impacto['total_donaciones']:,.2f}",
+                        delta=f"+{impacto['porcentaje_ampliacion']:.1f}%"
+                    )
+                with col3:
+                    st.metric(
+                        "Presupuesto Ampliado",
+                        f"S/. {impacto['presupuesto_ampliado']:,.2f}",
+                        delta_color="normal"
+                    )
+                with col4:
+                    st.metric(
+                        "Ampliación %",
+                        f"{impacto['porcentaje_ampliacion']:.1f}%",
+                        help="Porcentaje de aumento al presupuesto original"
+                    )
 
-                        e_obs = st.text_area("Observación", value=h_sel.get("observacion", ""), height=80)
+                # Barra de progreso
+                if impacto['presupuesto_original'] > 0:
+                    pct_ampliacion = impacto['porcentaje_ampliacion'] / 100
+                    st.progress(min(pct_ampliacion, 1.0))
+                    st.caption(f"Presupuesto ampliado de S/. {impacto['presupuesto_original']:,.0f} a S/. {impacto['presupuesto_ampliado']:,.0f}")
 
-                        colx, coly = st.columns(2)
-                        with colx:
-                            guardar_h = st.form_submit_button("💾 Guardar Cambios", use_container_width=True, type="primary")
-                        with coly:
-                            eliminar_h = st.form_submit_button("🗑️ Eliminar Hito", use_container_width=True)
+                st.divider()
 
-                    if guardar_h:
-                        ok, msg = validar_hito_pago(e_desc, e_fecha, e_monto)
-                        if not ok:
-                            st.error(f"❌ {msg}")
-                        else:
-                            payload = {
-                                "descripcion": e_desc.strip(),
-                                "fecha": str(e_fecha),
-                                "monto": float(e_monto),
-                                "estado": e_estado,
-                                "observacion": e_obs.strip(),
-                                "creado_por": h_sel.get("creado_por", "jefe"),
-                            }
-                            ok2, msg2 = actualizar_hito_pago(obra_codigo, h_id, payload)
-                            if ok2:
-                                st.success("✅ Hito actualizado correctamente")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {msg2}")
+            # ========== FORMULARIO PARA AGREGAR/EDITAR DONACIÓN ==========
+            st.markdown("#### ➕ Registrar Nueva Donación")
 
-                    if eliminar_h:
-                        ok3, msg3 = eliminar_hito_pago(obra_codigo, h_id)
-                        if ok3:
-                            st.success("✅ Hito eliminado correctamente")
-                            st.session_state.idx_hito_sel = 0
-                            st.rerun()
-                        else:
-                            st.error(f"❌ {msg3}")
+            # Determinar valores iniciales para el formulario según el modo
+            if st.session_state.modo_edicion_donacion and st.session_state.donacion_editando_data:
+                # Modo edición: cargar datos de la donación seleccionada
+                donacion_edit = st.session_state.donacion_editando_data
+                tipo_inicial = donacion_edit.get("tipo_donacion", "Efectivo")
+                nombre_inicial = donacion_edit.get("nombre_donante", "")
+                
+                # Para campos numéricos, convertir a string para text_input
+                cantidad_inicial = donacion_edit.get("cantidad", 0.0) or 0.0
+                if cantidad_inicial == 0:
+                    cantidad_str = ""
+                else:
+                    cantidad_str = f"{cantidad_inicial:.2f}".rstrip('0').rstrip('.') if '.' in f"{cantidad_inicial:.2f}" else f"{cantidad_inicial:.2f}"
+                
+                unidad_inicial = donacion_edit.get("unidad", "")
+                
+                valor_unitario_inicial = donacion_edit.get("valor_unitario", 0.0) or 0.0
+                if valor_unitario_inicial == 0:
+                    valor_unitario_str = ""
+                else:
+                    valor_unitario_str = f"{valor_unitario_inicial:.2f}".rstrip('0').rstrip('.') if '.' in f"{valor_unitario_inicial:.2f}" else f"{valor_unitario_inicial:.2f}"
+                
+                descripcion_inicial = donacion_edit.get("descripcion", "")
+            else:
+                # Modo agregar: valores por defecto
+                tipo_inicial = "Efectivo"
+                nombre_inicial = ""
+                cantidad_str = ""
+                unidad_inicial = ""
+                valor_unitario_str = ""
+                descripcion_inicial = ""
 
-            # ===== TAB: CAJA CHICA =====
-            with tab4:
-                st.markdown("### 💰 Caja Chica")
-                mostrar_caja_chica()
-
-            # ===== TAB: DONACIONES (PRINCIPAL) =====
-            with tab5:
-                st.markdown("### 🎁 Gestión de Donaciones")
-                st.caption("Registro de aportes externos efectivo o material/insumo que amplían los recursos del proyecto")
-
-                obra_codigo_tab = st.session_state.get("obra_seleccionada", "")
-                presupuesto_actual = obtener_presupuesto_obra(obra_codigo_tab)
-                donaciones_obra = obtener_donaciones_obra(obra_codigo_tab) or []
-
-                if "form_donacion_counter" not in st.session_state:
-                    st.session_state.form_donacion_counter = 0
-
-                # ========== REGISTRAR NUEVA DONACIÓN ==========
-                st.markdown("#### ➕ Registrar Nueva Donación")
-
+            # Formulario único para agregar/editar
+            with st.form(key=f"form_donacion_{st.session_state.form_donacion_counter}"):
+                st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: rgb(49, 51, 63);"><strong>📦 Tipo de Donación</strong></p>', unsafe_allow_html=True)
                 tipo_donacion = st.selectbox(
-                    "📦 Tipo de Donación",
+                    "Tipo de Donación",
                     ["Efectivo", "Insumo"],
-                    key="tipo_donacion"
+                    key="tipo_donacion",
+                    index=0 if tipo_inicial == "Efectivo" else 1,
+                    label_visibility="collapsed"
                 )
 
                 nombre_donante = st.text_input(
                     "👤 Nombre del Donante/Entidad",
                     placeholder="Ej: empresa X, persona Y",
+                    value=nombre_inicial,
                     key=f"don_nombre_{st.session_state.form_donacion_counter}"
-                )
+                    )
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    cantidad_donacion = st.number_input(
+                    # Campo de cantidad/monto estilo Yape
+                    cantidad_text = st.text_input(
                         "💵 Cantidad / Monto",
-                        min_value=0.0,
-                        step=0.01,
-                        format="%.2f",
-                        help="Si es Efectivo: monto en S/. | Si es Insumo: cantidad de unidades",
+                        placeholder="0",
+                        value=cantidad_str,
                         key=f"don_cantidad_{st.session_state.form_donacion_counter}"
                     )
+                    # Convertir a float para validación
+                    try:
+                        cantidad_donacion = float(cantidad_text) if cantidad_text.strip() else 0.0
+                    except ValueError:
+                        cantidad_donacion = 0.0
+                        if cantidad_text.strip():
+                            st.error("❌ Ingresa un número válido")
+
                 with col2:
+                    # Unidad (siempre habilitado, la validación es condicional)
                     unidad_especie = st.text_input(
                         "📏 Unidad (si es Insumo)",
                         placeholder="Ej: sacos, bolsas, metros, etc.",
-                        disabled=tipo_donacion.lower().startswith("efectivo"),
+                        value=unidad_inicial,
                         key=f"don_unidad_{st.session_state.form_donacion_counter}"
                     )
                 with col3:
-                    valor_unitario = st.number_input(
+                    # Valor Unitario estilo Yape (siempre habilitado, la validación es condicional)
+                    valor_unitario_text = st.text_input(
                         "💰 Valor Unitario (Insumo)",
-                        min_value=0.0,
-                        step=0.01,
-                        format="%.2f",
-                        help="Valor de mercado por unidad",
-                        disabled=tipo_donacion.lower().startswith("efectivo"),
+                        placeholder="0",
+                        value=valor_unitario_str,
                         key=f"don_valor_unit_{st.session_state.form_donacion_counter}"
                     )
+                    # Convertir a float para validación
+                    try:
+                        valor_unitario = float(valor_unitario_text) if valor_unitario_text.strip() else 0.0
+                    except ValueError:
+                        valor_unitario = 0.0
+                        if valor_unitario_text.strip():
+                            st.error("❌ Ingresa un número válido")
 
                 descripcion_donacion = st.text_area(
                     "📝 Descripción del Aporte",
                     placeholder="Detalle del material, condiciones, etc.",
                     height=80,
+                    value=descripcion_inicial,
                     key=f"don_desc_{st.session_state.form_donacion_counter}"
                 )
 
-                if st.button("✅ Registrar Donación", use_container_width=True, type="primary", key=f"btn_reg_don_{st.session_state.form_donacion_counter}"):
-                    tipo_val = "Efectivo" if tipo_donacion.lower().startswith("efectivo") else "Insumo"
+                # Botones dinámicos según el modo
+                if st.session_state.modo_edicion_donacion:
+                    # Modo edición: mostrar botones de guardar, eliminar y cancelar
+                    col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 2])
+                    with col_b1:
+                        guardar_edit = st.form_submit_button("✅ Guardar", use_container_width=True, type="primary")
+                    with col_b2:
+                        eliminar_edit = st.form_submit_button("🗑️ Eliminar", use_container_width=True, type="secondary")
+                    with col_b3:
+                        cancelar_edit = st.form_submit_button("❌ Cancelar", use_container_width=True)
+                    with col_b4:
+                        st.write("")  # Espacio vacío
+                else:
+                    # Modo agregar: mostrar botón principal
+                    agregar_submit = st.form_submit_button("✅ Registrar Donación", use_container_width=True, type="primary")
 
-                    es_valido, msg_error = validar_donacion(
-                        nombre_donante,
-                        tipo_val,
-                        cantidad_donacion,
-                        valor_unitario if tipo_val == "Insumo" else None
-                    )
+            # Procesar acciones del formulario
+            if st.session_state.modo_edicion_donacion:
+                # Estamos en modo edición
+                donacion_id = st.session_state.donacion_editando_id
+                
+                if guardar_edit:
+                    tipo_val = "Efectivo" if tipo_donacion.lower().startswith("efectivo") else "Insumo"
+                    
+                    # Validar según el tipo
+                    if tipo_val == "Insumo":
+                        # Para insumo, validar que unidad y valor unitario no estén vacíos
+                        if not unidad_especie.strip():
+                            st.error("❌ Debes especificar la unidad para el insumo")
+                        elif valor_unitario <= 0:
+                            st.error("❌ El valor unitario debe ser mayor a 0")
+                        else:
+                            es_valido, msg_error = validar_donacion(
+                                nombre_donante,
+                                tipo_val,
+                                cantidad_donacion,
+                                valor_unitario
+                            )
+                    else:
+                        # Para efectivo, no validar unidad ni valor unitario
+                        es_valido, msg_error = validar_donacion(
+                            nombre_donante,
+                            tipo_val,
+                            cantidad_donacion,
+                            None
+                        )
 
                     if not es_valido:
                         st.error(f"❌ {msg_error}")
                     else:
-                        valor_total = calcular_valor_donacion(tipo_val, cantidad_donacion, valor_unitario)
+                        valor_total = calcular_valor_donacion(tipo_val, cantidad_donacion, valor_unitario if tipo_val == "Insumo" else 0)
+                        
+                        payload = {
+                            "nombre_donante": nombre_donante.strip(),
+                            "tipo_donacion": tipo_val,
+                            "cantidad": cantidad_donacion,
+                            "unidad": unidad_especie.strip() if tipo_val == "Insumo" else "",
+                            "valor_unitario": valor_unitario if tipo_val == "Insumo" else 0,
+                            "valor_total": valor_total,
+                            "descripcion": descripcion_donacion.strip(),
+                            "fecha": str(date.today()),
+                            "estado": "Registrada"
+                        }
+                        
+                        ok, msg = actualizar_donacion(obra_codigo_tab, donacion_id, payload)
+                        if ok:
+                            st.success("✅ Donación actualizada correctamente")
+                            # Resetear modo edición
+                            st.session_state.modo_edicion_donacion = False
+                            st.session_state.donacion_editando_id = None
+                            st.session_state.donacion_editando_data = None
+                            st.session_state.form_donacion_counter += 1
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {msg}")
+                
+                elif eliminar_edit:
+                    ok, msg = eliminar_donacion(donacion_id)
+                    if ok:
+                        st.success("✅ Donación eliminada correctamente")
+                        # Resetear modo edición
+                        st.session_state.modo_edicion_donacion = False
+                        st.session_state.donacion_editando_id = None
+                        st.session_state.donacion_editando_data = None
+                        st.session_state.form_donacion_counter += 1
+                        st.rerun()
+                    else:
+                        st.error(f"❌ {msg}")
+                
+                elif cancelar_edit:
+                    # Cancelar edición
+                    st.session_state.modo_edicion_donacion = False
+                    st.session_state.donacion_editando_id = None
+                    st.session_state.donacion_editando_data = None
+                    st.session_state.form_donacion_counter += 1
+                    st.rerun()
+            
+            else:
+                # Modo agregar
+                if agregar_submit:
+                    tipo_val = "Efectivo" if tipo_donacion.lower().startswith("efectivo") else "Insumo"
+
+                    # Validar según el tipo
+                    if tipo_val == "Insumo":
+                        # Para insumo, validar que unidad y valor unitario no estén vacíos
+                        if not unidad_especie.strip():
+                            st.error("❌ Debes especificar la unidad para el insumo")
+                        elif valor_unitario <= 0:
+                            st.error("❌ El valor unitario debe ser mayor a 0")
+                        else:
+                            es_valido, msg_error = validar_donacion(
+                                nombre_donante,
+                                tipo_val,
+                                cantidad_donacion,
+                                valor_unitario
+                            )
+                    else:
+                        # Para efectivo, no validar unidad ni valor unitario
+                        es_valido, msg_error = validar_donacion(
+                            nombre_donante,
+                            tipo_val,
+                            cantidad_donacion,
+                            None
+                        )
+
+                    if not es_valido:
+                        st.error(f"❌ {msg_error}")
+                    else:
+                        valor_total = calcular_valor_donacion(tipo_val, cantidad_donacion, valor_unitario if tipo_val == "Insumo" else 0)
 
                         nueva_donacion = {
                             "nombre_donante": nombre_donante.strip(),
@@ -2982,221 +5070,143 @@ if st.session_state["auth"] == "jefe":
                         else:
                             st.error(f"❌ {msg}")
 
-                st.divider()
+            st.divider()
 
-                # ========== RESUMEN DE DONACIONES ==========
-                st.markdown("#### 📊 Resumen de Donaciones")
+            # ========== LISTADO DE DONACIONES ==========
+            donaciones_obra = obtener_donaciones_obra(obra_codigo_tab) or []
 
-                if donaciones_obra:
-                    resumen = calcular_resumen_donaciones(donaciones_obra)
-                    impacto = impacto_donacion_en_presupuesto(presupuesto_actual, donaciones_obra)
+            if not donaciones_obra:
+                st.info("📭 No hay donaciones registradas para esta obra. ¡Agrega la primera donación!")
+            else:
+                st.markdown(f"#### 📋 Historial de Donaciones ({len(donaciones_obra)} registradas)")
 
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric(
-                            "💵 Efectivo Donado",
-                            f"S/. {resumen['total_efectivo']:,.2f}",
-                            help="Dinero en efectivo recibido"
-                        )
-                    with col2:
-                        st.metric(
-                            "📦 Material/Insumo",
-                            f"S/. {resumen['total_especie']:,.2f}",
-                            help="Valor de mercado de materiales/insumos donados"
-                        )
-                    with col3:
-                        st.metric(
-                            "🎁 Total Donaciones",
-                            f"S/. {resumen['total_general']:,.2f}",
-                            help="Aporte total en valor"
-                        )
-                    with col4:
-                        st.metric(
-                            "📋 Cantidad de Donaciones",
-                            resumen['cantidad_donaciones'],
-                            help="Número total de donaciones registradas"
-                        )
+                # Filtros
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    filtro_tipo_don = st.selectbox(
+                        "Filtrar por tipo:",
+                        ["Todas", "Efectivo", "Insumo"],
+                        key="filtro_tipo_donacion"
+                    )
 
-                    st.divider()
+                donaciones_filtradas = donaciones_obra
+                if filtro_tipo_don != "Todas":
+                    donaciones_filtradas = [d for d in donaciones_obra if d.get("tipo_donacion") == filtro_tipo_don]
 
-                    # ========== IMPACTO EN PRESUPUESTO ==========
-                    st.markdown("#### 📈 Impacto en Presupuesto")
-
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric(
-                            "Presupuesto Original",
-                            f"S/. {impacto['presupuesto_original']:,.2f}"
-                        )
-                    with col2:
-                        st.metric(
-                            "Total Donaciones",
-                            f"S/. {impacto['total_donaciones']:,.2f}",
-                            delta=f"+{impacto['porcentaje_ampliacion']:.1f}%"
-                        )
-                    with col3:
-                        st.metric(
-                            "Presupuesto Ampliado",
-                            f"S/. {impacto['presupuesto_ampliado']:,.2f}",
-                            delta_color="normal"
-                        )
-                    with col4:
-                        st.metric(
-                            "Ampliación %",
-                            f"{impacto['porcentaje_ampliacion']:.1f}%",
-                            help="Porcentaje de aumento al presupuesto original"
-                        )
-
-                    # Barra de progreso
-                    if impacto['presupuesto_original'] > 0:
-                        pct_ampliacion = impacto['porcentaje_ampliacion'] / 100
-                        st.progress(min(pct_ampliacion, 1.0))
-                        st.caption(f"Presupuesto ampliado de S/. {impacto['presupuesto_original']:,.0f} a S/. {impacto['presupuesto_ampliado']:,.0f}")
-
-                    st.divider()
-
-                    # ========== LISTADO DE DONACIONES ==========
-                    st.markdown(f"#### 📋 Historial de Donaciones ({len(donaciones_obra)} registradas)")
-
-                    # Filtros
-                    col1, col2 = st.columns([1, 3])
-                    with col1:
-                        filtro_tipo_don = st.selectbox(
-                            "Filtrar por tipo:",
-                            ["Todas", "Efectivo", "Insumo"],
-                            key="filtro_tipo_donacion"
-                        )
-
-                    donaciones_filtradas = donaciones_obra
-                    if filtro_tipo_don != "Todas":
-                        donaciones_filtradas = [d for d in donaciones_obra if d.get("tipo_donacion") == filtro_tipo_don]
-
-                    # Tabla de donaciones
-                    if donaciones_filtradas:
-                        df_don = pd.DataFrame(donaciones_filtradas)
-                        cols_mostrar = ["fecha", "nombre_donante", "tipo_donacion", "cantidad", "unidad", "valor_total", "descripcion"]
-                        cols_existentes = [c for c in cols_mostrar if c in df_don.columns]
-
-                        st.dataframe(
-                            df_don[cols_existentes].rename(columns={
-                                "fecha": "Fecha",
-                                "nombre_donante": "Donante",
-                                "tipo_donacion": "Tipo",
-                                "cantidad": "Cantidad",
-                                "unidad": "Unidad",
-                                "valor_total": "Valor (S/.)",
-                                "descripcion": "Descripción",
-                            }),
-                            use_container_width=True,
-                            hide_index=True,
-                            column_config={
-                                "Valor (S/.)": st.column_config.NumberColumn(format="S/. %.2f")
-                            }
-                        )
-                    else:
-                        st.info("No hay donaciones registradas con este filtro")
-
-                    # ========== EDITAR/ELIMINAR DONACIÓN ==========
-                    st.markdown("#### ✏️ Editar o Eliminar Donación")
-
-                    if "idx_donacion_sel" not in st.session_state:
-                        st.session_state.idx_donacion_sel = 0
-
-                    opciones_don = [
-                        f"{d.get('fecha', '')} - {d.get('nombre_donante', '')} ({d.get('tipo_donacion', '')}) - S/. {float(d.get('valor_total', 0)):,.2f}"
-                        for d in donaciones_obra
-                    ]
-
-                    if opciones_don:
-                        sel_don = st.selectbox(
-                            "Selecciona una donación:",
-                            opciones_don,
-                            index=min(st.session_state.idx_donacion_sel, len(opciones_don) - 1),
-                            key="sel_donacion"
-                        )
-                        st.session_state.idx_donacion_sel = opciones_don.index(sel_don)
-
-                        don_sel = donaciones_obra[st.session_state.idx_donacion_sel]
-                        don_id = don_sel.get("id")
-
-                        with st.form("form_edit_donacion"):
+                if donaciones_filtradas:
+                    # Crear encabezados de la tabla con anchos ajustados
+                    col_fec, col_don, col_tip, col_can, col_uni, col_val, col_acc = st.columns([0.8, 1.5, 0.7, 0.6, 1, 0.9, 0.8])
+                    
+                    with col_fec:
+                        st.markdown("**Fecha**")
+                    with col_don:
+                        st.markdown("**Donante**")
+                    with col_tip:
+                        st.markdown("**Tipo**")
+                    with col_can:
+                        st.markdown("**Cant.**")
+                    with col_uni:
+                        st.markdown("**Unidad**")
+                    with col_val:
+                        st.markdown("**Valor (S/.)**")
+                    with col_acc:
+                        st.markdown("**Acciones**")
+                    
+                    st.markdown("---")
+                    
+                    # Mostrar cada donación como una fila
+                    for idx, donacion in enumerate(donaciones_filtradas):
+                        donacion_id = donacion.get("id", "")
+                        fecha = donacion.get("fecha", "")
+                        nombre_donante = donacion.get("nombre_donante", "")
+                        tipo = donacion.get("tipo_donacion", "")
+                        cantidad = float(donacion.get("cantidad", 0) or 0)
+                        unidad = donacion.get("unidad", "")
+                        valor_total = float(donacion.get("valor_total", 0) or 0)
+                        descripcion = donacion.get("descripcion", "")
+                        
+                        col1, col2, col3, col4, col5, col6, col7 = st.columns([0.8, 1.5, 0.7, 0.6, 1, 0.9, 0.8])
+                        
+                        with col1:
+                            st.write(fecha)
+                        
+                        with col2:
+                            st.write(nombre_donante)
+                        
+                        with col3:
+                            if tipo == "Efectivo":
+                                st.markdown(f"<span style='background-color:#e8f5e9; color:#2e7d32; padding:2px 6px; border-radius:12px; font-size:0.75rem;'>Efe</span>", unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"<span style='background-color:#fff3e0; color:#ef6c00; padding:2px 6px; border-radius:12px; font-size:0.75rem;'>Ins</span>", unsafe_allow_html=True)
+                        
+                        with col4:
+                            if cantidad > 0:
+                                # Mostrar sin decimales si es entero
+                                if cantidad.is_integer():
+                                    st.write(f"{int(cantidad)}")
+                                else:
+                                    st.write(f"{cantidad:,.2f}".rstrip('0').rstrip('.') if '.' in f"{cantidad:,.2f}" else f"{cantidad:,.2f}")
+                            else:
+                                st.write("-")
+                        
+                        with col5:
+                            st.write(unidad if unidad else "-")
+                        
+                        with col6:
+                            st.write(f"S/. {valor_total:,.2f}")
+                        
+                        with col7:
+                            # Contenedor para los botones de acción
+                            col_btn1, col_btn2 = st.columns(2)
+                            
+                            with col_btn1:
+                                # Botón de editar
+                                if st.button("✏️", key=f"editar_donacion_{donacion_id}_{idx}", help="Editar donación"):
+                                    # Activar modo edición
+                                    st.session_state.modo_edicion_donacion = True
+                                    st.session_state.donacion_editando_id = donacion_id
+                                    st.session_state.donacion_editando_data = donacion
+                                    st.rerun()
+                            
+                            with col_btn2:
+                                # Botón de eliminar
+                                if st.button("🗑️", key=f"eliminar_donacion_{donacion_id}_{idx}", help="Eliminar donación"):
+                                    # Mostrar confirmación
+                                    st.session_state.donacion_eliminar_id = donacion_id
+                                    st.session_state.donacion_eliminar_nombre = nombre_donante
+                                    st.session_state.mostrar_confirmacion_eliminar_donacion = True
+                                    st.rerun()
+                        
+                        # Añadir una línea separadora después de cada fila excepto la última
+                        if idx < len(donaciones_filtradas) - 1:
+                            st.markdown("---")
+                    
+                    # Modal de confirmación para eliminar donación
+                    if st.session_state.get("mostrar_confirmacion_eliminar_donacion", False):
+                        donacion_id_elim = st.session_state.donacion_eliminar_id
+                        donacion_nom_elim = st.session_state.donacion_eliminar_nombre
+                        with st.expander(f"⚠️ Confirmar eliminación", expanded=True):
+                            st.warning(f"¿Estás seguro de eliminar la donación de **{donacion_nom_elim}**?")
+                            
                             col1, col2 = st.columns(2)
                             with col1:
-                                e_donante = st.text_input("Donante", value=don_sel.get("nombre_donante", ""))
-                                e_tipo = st.selectbox(
-                                    "Tipo",
-                                    ["Efectivo", "Insumo"],
-                                    index=0 if don_sel.get("tipo_donacion") == "Efectivo" else 1
-                                )
+                                if st.button("✅ Sí, eliminar", use_container_width=True, type="primary", key="confirm_elim_donacion"):
+                                    ok, msg = eliminar_donacion(donacion_id_elim)
+                                    if ok:
+                                        st.success("✅ Donación eliminada")
+                                        st.session_state.mostrar_confirmacion_eliminar_donacion = False
+                                        st.session_state.form_donacion_counter += 1
+                                        st.rerun()
+                                    else:
+                                        st.error(f"❌ {msg}")
+                            
                             with col2:
-                                e_cantidad = st.number_input(
-                                    "Cantidad",
-                                    min_value=0.0,
-                                    step=0.01,
-                                    format="%.2f",
-                                    value=float(don_sel.get("cantidad", 0) or 0)
-                                )
-                                if e_tipo == "Insumo":
-                                    e_unidad = st.text_input("Unidad", value=don_sel.get("unidad", ""))
-                                    e_valor_unit = st.number_input(
-                                        "Valor Unitario",
-                                        min_value=0.0,
-                                        step=0.01,
-                                        format="%.2f",
-                                        value=float(don_sel.get("valor_unitario", 0) or 0)
-                                    )
-                                else:
-                                    e_unidad = ""
-                                    e_valor_unit = 0
-
-                            e_desc = st.text_area("Descripción", value=don_sel.get("descripcion", ""), height=80)
-
-                            colx, coly = st.columns(2)
-                            with colx:
-                                guardar_don = st.form_submit_button("💾 Guardar Cambios", use_container_width=True, type="primary")
-                            with coly:
-                                eliminar_don = st.form_submit_button("🗑️ Eliminar Donación", use_container_width=True)
-
-                        if guardar_don:
-                            es_valido, msg_error = validar_donacion(
-                                e_donante,
-                                e_tipo,
-                                e_cantidad,
-                                e_valor_unit if e_tipo == "Insumo" else None
-                            )
-
-                            if not es_valido:
-                                st.error(f"❌ {msg_error}")
-                            else:
-                                valor_total = calcular_valor_donacion(e_tipo, e_cantidad, e_valor_unit)
-                                payload = {
-                                    "nombre_donante": e_donante.strip(),
-                                    "tipo_donacion": e_tipo,
-                                    "cantidad": e_cantidad,
-                                    "unidad": e_unidad.strip() if e_tipo == "Insumo" else "",
-                                    "valor_unitario": e_valor_unit if e_tipo == "Insumo" else 0,
-                                    "valor_total": valor_total,
-                                    "descripcion": e_desc.strip(),
-                                }
-                                ok, msg = actualizar_donacion(obra_codigo_tab, don_id, payload)
-                                if ok:
-                                    st.success("✅ Donación actualizada correctamente")
+                                if st.button("❌ Cancelar", use_container_width=True, key="cancel_elim_donacion"):
+                                    st.session_state.mostrar_confirmacion_eliminar_donacion = False
                                     st.rerun()
-                                else:
-                                    st.error(f"❌ {msg}")
-
-                        if eliminar_don:
-                            ok, msg = eliminar_donacion(don_id)
-                            if ok:
-                                st.success("✅ Donación eliminada correctamente")
-                                st.session_state.idx_donacion_sel = 0
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {msg}")
                 else:
-                    st.info("📭 No hay donaciones registradas para esta obra. ¡Agrega la primera donación!")
+                    st.info("No hay donaciones registradas con este filtro")
 
-           
     # ==================== PANTALLA DE BIENVENIDA ====================
     else:
         st.markdown("""
@@ -3218,7 +5228,7 @@ if st.session_state["auth"] == "jefe":
 # ==================== MODO PASANTE ====================
 else:
     with st.sidebar:
-        mostrar_logo_dinamico()
+        mostrar_logo_con_imagen()  # Aquí va el logo con la imagen
         st.divider()
 
         obras = cargar_obras()
@@ -3237,6 +5247,14 @@ else:
             st.session_state.obra_seleccionada = obra_cod
             st.session_state.mostrar_form_obra = False
             st.session_state.mostrar_insumos = False
+            # Limpiar estados de gestión de empleados al cambiar de obra
+            st.session_state.mostrar_empleados_obra = False
+            st.session_state.mostrar_editor_empleado = False
+            st.session_state.mostrar_confirmacion_eliminar = False
+            if 'empleado_editando' in st.session_state:
+                del st.session_state.empleado_editando
+            if 'empleado_eliminar' in st.session_state:
+                del st.session_state.empleado_eliminar
             st.rerun()
 
         st.subheader("Obra asignada")
@@ -3311,7 +5329,7 @@ else:
 
         tab1, tab2, tab3 = st.tabs(["Parte Diario", "Historial de Avances", "Cronograma Valorizado"])
 
-        # ==================== TAB 1: PARTE DIARIO (PASANTE) ====================
+        # ==================== TAB 1: PARTE DIARIO (PASANTE) - VERSIÓN MEJORADA ====================
         with tab1:
             st.subheader("Parte Diario del Día")
             hoy = date.today()
@@ -3323,6 +5341,10 @@ else:
                 st.session_state.insumos_mo_confirmados = []
             if "insumos_mat_confirmados" not in st.session_state:
                 st.session_state.insumos_mat_confirmados = []
+            if "insumos_eq_confirmados" not in st.session_state:
+                st.session_state.insumos_eq_confirmados = []
+            if "insumos_otros_confirmados" not in st.session_state:
+                st.session_state.insumos_otros_confirmados = []
 
             counter = st.session_state.form_parte_diario_counter
 
@@ -3336,76 +5358,149 @@ else:
             with col2:
                 avance = st.slider("Avance logrado hoy (%)", 0, 30, 5, key=f"avance_input_pas_{counter}")
 
+            # Cargar partidas del cronograma para el selectbox
+            cronograma_partidas = obtener_cronograma_obra(obra_codigo) or []
+            nombres_partidas = [p.get("nombre", "Sin nombre") for p in cronograma_partidas if p.get("estado") == "Aprobado"]
+            opciones_partidas = nombres_partidas + ["➕ Otra partida (especificar)"]
+            
             col1, col2 = st.columns(2)
             with col1:
-                name_partida = st.text_input(
-                    "Nombre de la partida o actividad realizada hoy",
-                    placeholder="ej: Cimentación, Estructura, Albañilería, etc.",
-                    key=f"name_partida_input_pas_{counter}"
+                if not nombres_partidas:
+                    st.warning("⚠️ No hay partidas en el cronograma. Primero crea partidas en el tab 'Cronograma Valorizado'.")
+                    opciones_partidas = ["➕ Otra partida (especificar)"]
+                
+                st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: black;"><strong>🏗️ Partida del Cronograma</strong></p>', unsafe_allow_html=True)
+                partida_seleccionada = st.selectbox(
+                    "Partida del Cronograma",
+                    opciones_partidas,
+                    key=f"partida_selectbox_pas_{counter}",
+                    label_visibility="collapsed"
                 )
+                
+                # Si selecciona "Otra", mostrar campo de texto
+                if partida_seleccionada.startswith("➕"):
+                    name_partida = st.text_input(
+                        "Especifica la partida:",
+                        placeholder="ej: Demolición, Limpieza, etc.",
+                        key=f"name_partida_otra_pas_{counter}"
+                    )
+                    if not name_partida.strip():
+                        name_partida = "Sin especificar"
+                else:
+                    name_partida = partida_seleccionada
             with col2:
                 c21, c22 = st.columns(2)
                 with c21:
-                    cantidad_ejecutada = st.number_input(
+                    cantidad_ejecutada_text = st.text_input(
                         "Metrado Ejecutado",
-                        min_value=0.0,
-                        step=0.1,
-                        placeholder="Ingresa la cantidad realizada",
+                        placeholder="0.0",
                         key=f"cantidad_ejecutada_pas_{counter}"
                     )
+                    try:
+                        cantidad_ejecutada = float(cantidad_ejecutada_text) if cantidad_ejecutada_text.strip() else 0.0
+                    except ValueError:
+                        cantidad_ejecutada = 0.0
+                        if cantidad_ejecutada_text.strip():
+                            st.error("❌ Ingresa un número válido")
                 with c22:
                     unidad_medida = st.text_input(
                         "Unidad",
                         placeholder="ej: M3, KG, UND, HH",
                         key=f"unidad_input_pas_{counter}"
                     )
+            
+            # Campo de descripción del avance del día
+            descripcion_avance = st.text_area(
+                "📝 Descripción del avance de hoy (opcional pero recomendado)",
+                placeholder="ej: Instalación de ventanas de aluminio en 2do piso - sector A, Tarrajeo de baños principal y secundario, etc.",
+                height=80,
+                key=f"descripcion_avance_pas_{counter}",
+                help="Describe la actividad específica realizada. Esto ayuda a la trazabilidad y auditorías."
+            )
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns([1, 2, 1.5])
             with col1:
-                horas_mano_obra = st.number_input("Jornada Laboral (h)", min_value=0, step=1, value=8, key=f"horas_input_pas_{counter}")
+                horas_mano_obra_text = st.text_input("Jornada Laboral (h)", placeholder="8", value="8", key=f"horas_input_pas_{counter}")
+                try:
+                    horas_mano_obra = float(horas_mano_obra_text) if horas_mano_obra_text.strip() else 8.0
+                except ValueError:
+                    horas_mano_obra = 8.0
+                    if horas_mano_obra_text.strip():
+                        st.error("❌ Ingresa un número válido")
             with col2:
-                rendimiento_partida = st.number_input(
+                rendimiento_partida_text = st.text_input(
                     "Rendimiento Esperado de la Partida (por día)",
-                    min_value=0.0,
-                    step=0.1,
-                    value=6.0,
+                    placeholder="6.0",
+                    value="6.0",
                     help="Rendimiento en unidad/día. Se ajusta proporcionalmente si la jornada no es de 8 horas.",
                     key=f"rendimiento_input_pas_{counter}"
                 )
+                try:
+                    rendimiento_partida = float(rendimiento_partida_text) if rendimiento_partida_text.strip() else 6.0
+                except ValueError:
+                    rendimiento_partida = 6.0
+                    if rendimiento_partida_text.strip():
+                        st.error("❌ Ingresa un número válido")
+            with col3:
+                precio_venta_text = st.text_input(
+                    "Precio de Venta Unitario (S/.)",
+                    placeholder="15.0",
+                    help="Precio al que se cobra el trabajo por unidad (para análisis de rentabilidad)",
+                    key=f"precio_venta_pas_{counter}"
+                )
+                try:
+                    precio_venta_unitario = float(precio_venta_text) if precio_venta_text.strip() else 0.0
+                except ValueError:
+                    precio_venta_unitario = 0.0
+                    if precio_venta_text.strip():
+                        st.error("❌ Ingresa un número válido")
 
             st.markdown("### Costos")
 
-            # Cargar empleados
-            empleados_docs = db.collection("empleados").stream()
+            # Cargar empleados e insumos
+            empleados_docs = db.collection("empleados").where("codigo_obra", "==", obra_codigo).stream()
             empleados = [{"id": d.id, **d.to_dict()} for d in empleados_docs]
 
-            tab_mo, tab_insumos = st.tabs(["Mano de Obra", "Insumos (General)"])
+            insumos_lista = cargar_insumos()
+
+            tab_mo, tab_mat, tab_eq, tab_otros = st.tabs(["Mano de Obra", "Materiales", "Equipos", "Otros"])
 
             with tab_mo:
-                st.markdown("#### Ingresar Mano de Obra")
+                st.markdown("#### Ingresar Mano de Obra - Datos Detallados")
+                
+                # Botón de Gestión de Empleados
+                if st.button("👷 Gestión de Empleados", use_container_width=True, key="btn_empleados_obra_pas"):
+                    st.session_state.mostrar_empleados_obra = True
+                    st.rerun()
                 
                 if not empleados:
                     st.warning("⚠️ No hay empleados registrados. Consulta con el jefe de obra.")
                 else:
                     col1, col2 = st.columns(2)
                     with col1:
-                        nombres_empleados = [f"{e['nombre']} - {e['cargo']}" for e in empleados]
+                        nombres_empleados = [f"{e['nombre']} - {e['cargo']} (DNI: {e['dni']})" for e in empleados]
+                        st.markdown('<p style="margin-bottom: 8px; font-size: 14px; font-weight: 400; color: rgb(49, 51, 63);"><strong>Seleccionar Empleado</strong></p>', unsafe_allow_html=True)
                         empleado_seleccionado = st.selectbox(
                             "Seleccionar Empleado",
                             nombres_empleados,
-                            key=f"empleado_mo_pas_{counter}"
+                            key=f"empleado_mo_pas_{counter}",
+                            label_visibility="collapsed"
                         )
                         idx_emp = nombres_empleados.index(empleado_seleccionado)
                         empleado_data = empleados[idx_emp]
                     with col2:
-                        sueldo_dia = st.number_input(
+                        sueldo_text = st.text_input(
                             "Sueldo del Día (S/.)",
-                            min_value=0.0,
-                            step=10.0,
-                            value=80.0,
-                            format="%.2f",
+                            placeholder="80",
+                            value="80",
                             key=f"sueldo_mo_pas_{counter}"
                         )
+                        try:
+                            sueldo_dia = float(sueldo_text) if sueldo_text.strip() else 0.0
+                        except ValueError:
+                            sueldo_dia = 0.0
+                            if sueldo_text.strip():
+                                st.error("❌ Ingresa un número válido")
 
                     if st.button("Confirmar Mano de Obra", use_container_width=True, type="primary", key=f"btn_confirmar_mo_pas_{counter}"):
                         if sueldo_dia <= 0:
@@ -3415,72 +5510,356 @@ else:
                                 "Empleado": empleado_data['nombre'],
                                 "Cargo": empleado_data['cargo'],
                                 "DNI": empleado_data['dni'],
+                                "Contacto": empleado_data.get('numero', 'No registrado'),
                                 "Sueldo del Día": sueldo_dia,
                                 "Parcial (S/)": sueldo_dia
                             }
                             st.session_state.insumos_mo_confirmados.append(item)
-                            st.success(f"✓ {empleado_data['nombre']} agregado")
+                            st.success(f"✓ {empleado_data['nombre']} agregado (DNI: {empleado_data['dni']})")
                             st.rerun()
 
-            with tab_insumos:
-                st.markdown("#### Ingresar Insumo (Material, Equipo u Otro)")
+            with tab_mat:
+                st.markdown("#### Ingresar Material")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    desc_insumo = st.text_input("Descripción", placeholder="ej: Cemento, Alquiler Mezcladora, etc.", key=f"desc_insumo_pas_{counter}")
+                    desc_materiales = st.text_input("Descripción del Material", placeholder="Ej: Cemento Portland Tipo I", key=f"desc_mat_pas_{counter}")
                 with col2:
-                    cant_insumo = st.number_input("Cantidad", min_value=0.0, step=0.01, format="%.4f", key=f"cant_insumo_pas_{counter}")
+                    cant_mat_text = st.text_input("Cantidad", placeholder="0", key=f"cant_mat_pas_{counter}")
+                    try:
+                        cant_materiales = float(cant_mat_text) if cant_mat_text.strip() else 0.0
+                    except ValueError:
+                        cant_materiales = 0.0
+                        if cant_mat_text.strip():
+                            st.error("❌ Ingresa un número válido")
                 with col3:
-                    precio_insumo = st.number_input("Precio Unit. (S/.)", min_value=0.0, step=0.01, value=0.0, format="%.2f", key=f"precio_insumo_pas_{counter}")
+                    precio_mat_text = st.text_input("Precio Unitario (S/.)", placeholder="0", key=f"precio_mat_pas_{counter}")
+                    try:
+                        precio_materiales = float(precio_mat_text) if precio_mat_text.strip() else 0.0
+                    except ValueError:
+                        precio_materiales = 0.0
+                        if precio_mat_text.strip():
+                            st.error("❌ Ingresa un número válido")
 
-                if st.button("Confirmar Insumo", use_container_width=True, type="primary", key=f"btn_confirmar_insumo_pas_{counter}"):
+                if st.button("Confirmar Material", use_container_width=True, type="primary", key=f"btn_confirmar_mat_pas_{counter}"):
                     if rendimiento_partida <= 0:
                         st.error("❌ El rendimiento de la partida debe ser mayor a 0")
-                    elif not unidad_medida.strip():
-                        st.error("❌ Debes especificar la unidad de medida")
-                    elif cant_insumo <= 0:
+                    elif not desc_materiales.strip():
+                        st.error("❌ Debes ingresar la descripción del material")
+                    elif cant_materiales <= 0:
                         st.error("❌ La cantidad debe ser mayor a 0")
-                    elif not desc_insumo.strip():
-                        st.error("❌ Debes ingresar una descripción")
-                    elif precio_insumo <= 0:
-                        st.error("❌ El precio debe ser mayor a 0")
+                    elif precio_materiales <= 0:
+                        st.error("❌ El precio unitario debe ser mayor a 0")
                     else:
-                        parcial_insumo = calcular_parcial(cant_insumo, precio_insumo)
-                        st.session_state.insumos_mat_confirmados.append({
-                            "Descripción": desc_insumo,
-                            "Cantidad": cant_insumo,
-                            "Precio Unit.": precio_insumo,
-                            "Parcial (S/)": parcial_insumo
-                        })
-                        st.success(f"✓ {desc_insumo} agregado")
+                        parcial_mat = calcular_parcial(cant_materiales, precio_materiales)
+                        item = {
+                            "Insumo": desc_materiales.strip(),
+                            "Cantidad": cant_materiales,
+                            "Precio Unit.": precio_materiales,
+                            "Parcial (S/)": parcial_mat
+                        }
+                        st.session_state.insumos_mat_confirmados.append(item)
+                        st.success(f"✓ {desc_materiales} agregado")
+                        st.rerun()
+
+            with tab_eq:
+                st.markdown("#### Ingresar Equipo")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    desc_equipos = st.text_input("Descripción del Equipo", placeholder="Ej: Mezcladora de Concreto", key=f"desc_eq_pas_{counter}")
+                with col2:
+                    cant_eq_text = st.text_input("Cantidad (Horas/Días)", placeholder="0", key=f"cant_eq_pas_{counter}")
+                    try:
+                        cant_equipos = float(cant_eq_text) if cant_eq_text.strip() else 0.0
+                    except ValueError:
+                        cant_equipos = 0.0
+                        if cant_eq_text.strip():
+                            st.error("❌ Ingresa un número válido")
+                with col3:
+                    precio_eq_text = st.text_input("Precio Unitario (S/.)", placeholder="0", key=f"precio_eq_pas_{counter}")
+                    try:
+                        precio_equipos = float(precio_eq_text) if precio_eq_text.strip() else 0.0
+                    except ValueError:
+                        precio_equipos = 0.0
+                        if precio_eq_text.strip():
+                            st.error("❌ Ingresa un número válido")
+
+                if st.button("Confirmar Equipo", use_container_width=True, type="primary", key=f"btn_confirmar_eq_pas_{counter}"):
+                    if rendimiento_partida <= 0:
+                        st.error("❌ El rendimiento de la partida debe ser mayor a 0")
+                    elif not desc_equipos.strip():
+                        st.error("❌ Debes ingresar la descripción del equipo")
+                    elif cant_equipos <= 0:
+                        st.error("❌ La cantidad debe ser mayor a 0")
+                    elif precio_equipos <= 0:
+                        st.error("❌ El precio unitario debe ser mayor a 0")
+                    else:
+                        parcial_eq = calcular_parcial(cant_equipos, precio_equipos)
+                        item = {
+                            "Insumo": desc_equipos.strip(),
+                            "Cantidad": cant_equipos,
+                            "Precio Unit.": precio_equipos,
+                            "Parcial (S/)": parcial_eq
+                        }
+                        st.session_state.insumos_eq_confirmados.append(item)
+                        st.success(f"✓ {desc_equipos} agregado")
+                        st.rerun()
+
+            with tab_otros:
+                st.markdown("#### Ingresar Otros Gastos")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    desc_otros = st.text_input("Descripción del Gasto", placeholder="Ej: Transporte de materiales", key=f"desc_otros_pas_{counter}")
+                with col2:
+                    cant_otros_text = st.text_input("Cantidad", placeholder="0", key=f"cant_otros_pas_{counter}")
+                    try:
+                        cant_otros = float(cant_otros_text) if cant_otros_text.strip() else 0.0
+                    except ValueError:
+                        cant_otros = 0.0
+                        if cant_otros_text.strip():
+                            st.error("❌ Ingresa un número válido")
+                with col3:
+                    precio_otros_text = st.text_input("Precio Unitario (S/.)", placeholder="0", key=f"precio_otros_pas_{counter}")
+                    try:
+                        precio_otros = float(precio_otros_text) if precio_otros_text.strip() else 0.0
+                    except ValueError:
+                        precio_otros = 0.0
+                        if precio_otros_text.strip():
+                            st.error("❌ Ingresa un número válido")
+
+                if st.button("Confirmar Otro", use_container_width=True, type="primary", key=f"btn_confirmar_otros_pas_{counter}"):
+                    if rendimiento_partida <= 0:
+                        st.error("❌ El rendimiento de la partida debe ser mayor a 0")
+                    elif not desc_otros.strip():
+                        st.error("❌ Debes ingresar la descripción del gasto")
+                    elif cant_otros <= 0:
+                        st.error("❌ La cantidad debe ser mayor a 0")
+                    elif precio_otros <= 0:
+                        st.error("❌ El precio unitario debe ser mayor a 0")
+                    else:
+                        parcial_otros = calcular_parcial(cant_otros, precio_otros)
+                        item = {
+                            "Insumo": desc_otros.strip(),
+                            "Cantidad": cant_otros,
+                            "Precio Unit.": precio_otros,
+                            "Parcial (S/)": parcial_otros
+                        }
+                        st.session_state.insumos_otros_confirmados.append(item)
+                        st.success(f"✓ {desc_otros} agregado")
                         st.rerun()
             # ==================== LISTAS CONFIRMADAS (PASANTE) ====================
             if st.session_state.insumos_mo_confirmados:
                 st.markdown("#### Mano de Obra Confirmada")
-                st.dataframe(pd.DataFrame(st.session_state.insumos_mo_confirmados), use_container_width=True, hide_index=True)
-                if st.button("🗑️ Limpiar Mano de Obra", key=f"limpiar_mo_pas_{counter}"):
-                    st.session_state.insumos_mo_confirmados = []
-                    st.rerun()
+                # Encabezados
+                cols_header = st.columns([3, 2, 2, 2, 2, 2, 1])
+                with cols_header[0]:
+                    st.markdown("**Empleado**")
+                with cols_header[1]:
+                    st.markdown("**Cargo**")
+                with cols_header[2]:
+                    st.markdown("**DNI**")
+                with cols_header[3]:
+                    st.markdown("**Contacto**")
+                with cols_header[4]:
+                    st.markdown("**Sueldo del Día**")
+                with cols_header[5]:
+                    st.markdown("**Parcial (S/)**")
+                with cols_header[6]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_mo_confirmados):
+                    cols = st.columns([3, 2, 2, 2, 2, 2, 1])
+                    with cols[0]:
+                        st.write(item.get("Empleado", ""))
+                    with cols[1]:
+                        st.write(item.get("Cargo", ""))
+                    with cols[2]:
+                        st.write(item.get("DNI", ""))
+                    with cols[3]:
+                        st.write(item.get("Contacto", "No registrado"))
+                    with cols[4]:
+                        st.write(f"{item.get('Sueldo del Día', 0)}")
+                    with cols[5]:
+                        st.write(f"{item.get('Parcial (S/)', 0)}")
+                    with cols[6]:
+                        if st.button("🗑️", key=f"del_mo_pas_{counter}_{idx}"):
+                            st.session_state.insumos_mo_confirmados.pop(idx)
+                            st.rerun()
+                
+                # ==================== ANÁLISIS DE RENTABILIDAD DE MANO DE OBRA (PASANTE) ====================
+                st.markdown("##### 📊 Análisis de Rentabilidad")
+                
+                total_costo_mo = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mo_confirmados])
+                
+                # Obtener datos de la partida
+                cant_exec = cantidad_ejecutada if 'cantidad_ejecutada' in locals() else 0.0
+                precio_vta = precio_venta_unitario if 'precio_venta_unitario' in locals() else 0.0
+                
+                if cant_exec > 0 and precio_vta > 0:
+                    valor_trabajo = cant_exec * precio_vta
+                    diferencia = valor_trabajo - total_costo_mo
+                    rentabilidad_pct = (diferencia / valor_trabajo * 100) if valor_trabajo > 0 else 0
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric(
+                            "💰 Valor del Trabajo",
+                            f"S/. {valor_trabajo:,.2f}",
+                            help=f"{cant_exec} {unidad_medida if 'unidad_medida' in locals() else 'und'} × S/. {precio_vta}"
+                        )
+                    
+                    with col2:
+                        st.metric(
+                            "👷 Costo Mano de Obra",
+                            f"S/. {total_costo_mo:,.2f}",
+                            help="Suma de sueldos del día"
+                        )
+                    
+                    with col3:
+                        if diferencia >= 0:
+                            st.metric(
+                                "✅ Ganancia",
+                                f"S/. {diferencia:,.2f}",
+                                delta=f"{rentabilidad_pct:.1f}%",
+                                delta_color="normal"
+                            )
+                        else:
+                            st.metric(
+                                "❌ Pérdida",
+                                f"S/. {abs(diferencia):,.2f}",
+                                delta=f"{rentabilidad_pct:.1f}%",
+                                delta_color="inverse"
+                            )
+                    
+                    with col4:
+                        if diferencia >= 0:
+                            estado_rentabilidad = "🟢 Rentable"
+                            color_badge = "#2ecc71"
+                        else:
+                            estado_rentabilidad = "🔴 No Rentable"
+                            color_badge = "#e74c3c"
+                        
+                        st.markdown(f"""
+                        <div style="text-align: center; padding: 10px; background-color: {color_badge}20; border-radius: 8px; border: 2px solid {color_badge};">
+                            <h3 style="margin: 0; color: {color_badge};">{estado_rentabilidad}</h3>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Mensaje explicativo
+                    if diferencia >= 0:
+                        st.success(f"✅ **Excelente:** El valor del trabajo (S/. {valor_trabajo:,.2f}) supera el costo de mano de obra (S/. {total_costo_mo:,.2f}). Ganancia: S/. {diferencia:,.2f}")
+                    else:
+                        st.error(f"⚠️ **Atención:** El costo de mano de obra (S/. {total_costo_mo:,.2f}) supera el valor del trabajo (S/. {valor_trabajo:,.2f}). Pérdida: S/. {abs(diferencia):,.2f}")
+                else:
+                    st.info("ℹ️ Ingresa el **Metrado Ejecutado** y el **Precio de Venta Unitario** arriba para ver el análisis de rentabilidad.")
+                
+                st.markdown("---")
 
             if st.session_state.insumos_mat_confirmados:
-                st.markdown("#### Insumos Confirmados")
-                st.dataframe(pd.DataFrame(st.session_state.insumos_mat_confirmados), use_container_width=True, hide_index=True)
-                if st.button("🗑️ Limpiar Insumos", key=f"limpiar_insumos_pas_{counter}"):
-                    st.session_state.insumos_mat_confirmados = []
-                    st.rerun()
+                st.markdown("#### Materiales Confirmados")
+                # Encabezados
+                cols_header = st.columns([5, 2, 3, 1])
+                with cols_header[0]:
+                    st.markdown("**Insumo**")
+                with cols_header[1]:
+                    st.markdown("**Cant.**")
+                with cols_header[2]:
+                    st.markdown("**Valor (S/.)**")
+                with cols_header[3]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_mat_confirmados):
+                    cols = st.columns([5, 2, 3, 1])
+                    with cols[0]:
+                        st.write(item.get("Insumo", ""))
+                    with cols[1]:
+                        st.write(f"{item.get('Cantidad', 0)}")
+                    with cols[2]:
+                        st.write(f"S/. {item.get('Parcial (S/)', 0):,.2f}")
+                    with cols[3]:
+                        if st.button("🗑️", key=f"del_mat_pas_{counter}_{idx}"):
+                            st.session_state.insumos_mat_confirmados.pop(idx)
+                            st.rerun()
+                
+                st.markdown("---")
+
+            if st.session_state.insumos_eq_confirmados:
+                st.markdown("#### Equipos Confirmados")
+                # Encabezados
+                cols_header = st.columns([5, 2, 3, 1])
+                with cols_header[0]:
+                    st.markdown("**Insumo**")
+                with cols_header[1]:
+                    st.markdown("**Cant.**")
+                with cols_header[2]:
+                    st.markdown("**Valor (S/.)**")
+                with cols_header[3]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_eq_confirmados):
+                    cols = st.columns([5, 2, 3, 1])
+                    with cols[0]:
+                        st.write(item.get("Insumo", ""))
+                    with cols[1]:
+                        st.write(f"{item.get('Cantidad', 0)}")
+                    with cols[2]:
+                        st.write(f"S/. {item.get('Parcial (S/)', 0):,.2f}")
+                    with cols[3]:
+                        if st.button("🗑️", key=f"del_eq_pas_{counter}_{idx}"):
+                            st.session_state.insumos_eq_confirmados.pop(idx)
+                            st.rerun()
+                
+                st.markdown("---")
+
+            if st.session_state.insumos_otros_confirmados:
+                st.markdown("#### Otros Confirmados")
+                # Encabezados
+                cols_header = st.columns([5, 2, 3, 1])
+                with cols_header[0]:
+                    st.markdown("**Insumo**")
+                with cols_header[1]:
+                    st.markdown("**Cant.**")
+                with cols_header[2]:
+                    st.markdown("**Valor (S/.)**")
+                with cols_header[3]:
+                    st.markdown("**Acciones**")
+                
+                for idx, item in enumerate(st.session_state.insumos_otros_confirmados):
+                    cols = st.columns([5, 2, 3, 1])
+                    with cols[0]:
+                        st.write(item.get("Insumo", ""))
+                    with cols[1]:
+                        st.write(f"{item.get('Cantidad', 0)}")
+                    with cols[2]:
+                        st.write(f"S/. {item.get('Parcial (S/)', 0):,.2f}")
+                    with cols[3]:
+                        if st.button("🗑️", key=f"del_otros_pas_{counter}_{idx}"):
+                            st.session_state.insumos_otros_confirmados.pop(idx)
+                            st.rerun()
+                
+                st.markdown("---")
 
             # ==================== RESUMEN DE COSTOS ====================
             st.markdown("### 📊 Resumen de Costos Consolidado")
             total_mo = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mo_confirmados])
-            total_insumos = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mat_confirmados])
-            total_general = total_mo + total_insumos
+            total_mat = sum([item["Parcial (S/)"] for item in st.session_state.insumos_mat_confirmados])
+            total_eq = sum([item["Parcial (S/)"] for item in st.session_state.insumos_eq_confirmados])
+            total_otros = sum([item["Parcial (S/)"] for item in st.session_state.insumos_otros_confirmados])
+            total_general = total_mo + total_mat + total_eq + total_otros
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Mano de Obra", f"S/. {total_mo:.2f}")
             with col2:
-                st.metric("Insumos", f"S/. {total_insumos:.2f}")
+                st.metric("Materiales", f"S/. {total_mat:.2f}")
             with col3:
-                st.metric("💰 TOTAL", f"S/. {total_general:.2f}", delta_color="normal")
+                st.metric("Equipos", f"S/. {total_eq:.2f}")
+            with col4:
+                st.metric("Otros", f"S/. {total_otros:.2f}")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("💰 TOTAL GENERAL", f"S/. {total_general:.2f}", delta_color="normal")
 
             st.markdown("### Finalizar Parte Diario")
             obs = st.text_area("Observaciones", key=f"obs_final_pas_{counter}")
@@ -3489,6 +5868,7 @@ else:
             st.session_state["cantidad_ejecutada_cache"] = cantidad_ejecutada
             st.session_state["unidad_medida_cache"] = unidad_medida
             st.session_state["total_general_cache"] = total_general
+            st.session_state["precio_venta_unitario_cache"] = precio_venta_unitario
 
             if 0 < len(fotos) < 3:
                 st.warning("⚠️ Debes subir mínimo 3 fotos")
@@ -3514,8 +5894,8 @@ else:
                         totales = calcular_totales_costos(
                             st.session_state.insumos_mo_confirmados,
                             st.session_state.insumos_mat_confirmados,
-                            [],
-                            [],
+                            st.session_state.insumos_eq_confirmados,
+                            st.session_state.insumos_otros_confirmados,
                             cantidad_ejecutada=1  # Ya no se multiplica, total directo
                         )
                         
@@ -3536,6 +5916,7 @@ else:
                             observaciones=obs,
                             rutas_fotos=rutas_fotos,
                             nombre_partida=name_partida,
+                            descripcion_avance=descripcion_avance,
                             rendimiento_partida=rendimiento_partida,
                             unidad_medida=st.session_state.get(
                                 "unidad_medida_cache",
@@ -3543,10 +5924,11 @@ else:
                             ),
                             horas_mano_obra=horas_mano_obra,
                             cantidad_ejecutada=cantidad_ejecutada_cache,
+                            precio_venta_unitario=st.session_state.get("precio_venta_unitario_cache", 0.0),
                             insumos_mo=st.session_state.insumos_mo_confirmados,
                             insumos_mat=st.session_state.insumos_mat_confirmados,
-                            insumos_eq=[],
-                            insumos_otros=[],
+                            insumos_eq=st.session_state.insumos_eq_confirmados,
+                            insumos_otros=st.session_state.insumos_otros_confirmados,
                             totales=totales
                         )
 
@@ -3555,10 +5937,6 @@ else:
                             obra_codigo,
                             nuevo_avance
                         )
-
-                        if not exito:
-                            st.error(f"❌ Error al guardar: {mensaje_db}")
-                            return
 
                         if not exito:
                             st.error(f"❌ Error al guardar: {mensaje_db}")
@@ -3584,10 +5962,40 @@ else:
                         st.session_state.pdf_bytes = None
 
                         # ==========================
+                        # 📤 SUBIR AUTOMÁTICAMENTE A DRIVE
+                        # ==========================
+                        try:
+                            from modules.pdf_report import build_parte_pdf
+                            from modules.drive_upload import upload_pdf_base64
+                            
+                            # Generar PDF
+                            pdf_bytes = build_parte_pdf(
+                                obra_codigo=obra_codigo,
+                                obra_nombre=obra_nombre,
+                                avance=nuevo_avance,
+                                rol="pasante"
+                            )
+                            
+                            webapp_url, token = _get_drive_conf()
+                            
+                            if webapp_url and token and pdf_bytes:
+                                # Nombre del archivo
+                                fecha_str = nuevo_avance.get("fecha", "").replace("-", "")
+                                filename = f"PD_{obra_codigo}_{fecha_str}_PASANTE.pdf"
+                                
+                                resultado = upload_pdf_base64(webapp_url, token, obra_codigo, filename, pdf_bytes)
+                                if resultado.get("status") == "success":
+                                    st.info(f"📤 PDF subido automáticamente a Drive: {filename}")
+                        except Exception as e:
+                            st.warning(f"⚠️ No se pudo subir PDF automáticamente a Drive: {str(e)}")
+
+                        # ==========================
                         #  LIMPIEZA DE ESTADO
                         # ==========================
                         st.session_state.insumos_mo_confirmados = []
                         st.session_state.insumos_mat_confirmados = []
+                        st.session_state.insumos_eq_confirmados = []
+                        st.session_state.insumos_otros_confirmados = []
                         st.session_state.form_parte_diario_counter += 1
                         st.session_state.parte_enviado = True
 
@@ -3614,8 +6022,6 @@ else:
                 fecha = nuevo_avance.get("fecha")
                 avance_pct = nuevo_avance.get("avance", 0)
                 totales = nuevo_avance.get("totales", {})
-
-                import urllib.parse
 
                 mensaje = (
                     f" *Parte Diario Enviado*\n\n"
@@ -3685,8 +6091,8 @@ else:
                     costos_validos, mensaje_costos = validar_costos_parte_diario(
                         st.session_state.insumos_mo_confirmados,
                         st.session_state.insumos_mat_confirmados,
-                        [],
-                        []
+                        st.session_state.insumos_eq_confirmados,
+                        st.session_state.insumos_otros_confirmados
                     )
 
                     if not es_valido:
@@ -3759,7 +6165,18 @@ else:
                 with c3:
                     crono_fin = st.date_input("Fin", value=date.today())
                 with c4:
-                    crono_monto = st.number_input("Monto (S/.)", min_value=0.0, step=0.01, format="%.2f")
+                    # Campo de monto estilo Yape para pasante
+                    crono_monto_text = st.text_input(
+                        "Monto (S/.)",
+                        placeholder="0",
+                        key=f"crono_monto_pas_{st.session_state.form_crono_counter_pas}"
+                    )
+                    try:
+                        crono_monto = float(crono_monto_text) if crono_monto_text.strip() else 0.0
+                    except ValueError:
+                        crono_monto = 0.0
+                        if crono_monto_text.strip():
+                            st.error("❌ Ingresa un número válido")
                 crono_desc = st.text_input("Descripción (opcional)", placeholder="Ej: concreto f'c 210")
 
                 if st.form_submit_button("Enviar Solicitud (Pendiente)", use_container_width=True, type="primary"):
@@ -3813,7 +6230,7 @@ else:
             if propias_pendientes:
                 st.markdown("#### Eliminar Partida (solo tus solicitudes Pendiente)")
                 opciones_del = [
-                    f"{i+1}. {it.get('nombre','(sin nombre)')} | {it.get('fecha_inicio','')} → {it.get('fecha_fin','')} | S/. {float(it.get('monto_planificado',0) or 0):.2f}"
+                    f"{i+1}. {it.get('nombre','(sin nombre)')} | {it.get('fecha_inicio','')} → {it.get('fecha_fin','')} | S/. {float(it.get('monto_planificado',0) or 0):,.2f}"
                     for i, it in enumerate(propias_pendientes)
                 ]
                 if "idx_del_crono_pas" not in st.session_state:
@@ -3861,7 +6278,18 @@ else:
                 with c2:
                     h_fecha = st.date_input("Fecha", value=date.today())
                 with c3:
-                    h_monto = st.number_input("Monto (S/.)", min_value=0.0, step=0.01, format="%.2f")
+                    # Campo de monto estilo Yape para pasante
+                    h_monto_text = st.text_input(
+                        "Monto (S/.)",
+                        placeholder="0",
+                        key=f"hito_monto_pas_{st.session_state.form_hito_counter_pas}"
+                    )
+                    try:
+                        h_monto = float(h_monto_text) if h_monto_text.strip() else 0.0
+                    except ValueError:
+                        h_monto = 0.0
+                        if h_monto_text.strip():
+                            st.error("❌ Ingresa un número válido")
 
                 h_obs = st.text_input("Observación (opcional)", placeholder="Ej: Sustento enviado / OC pendiente")
 
@@ -3914,7 +6342,7 @@ else:
             if propias_h_pend:
                 st.markdown("#### Eliminar Hito (solo tus Pendientes)")
                 opciones_hdel = [
-                    f"{i+1}. {it.get('descripcion','(sin descripción)')} | {it.get('fecha','')} | S/. {float(it.get('monto',0) or 0):.2f}"
+                    f"{i+1}. {it.get('descripcion','(sin descripción)')} | {it.get('fecha','')} | S/. {float(it.get('monto',0) or 0):,.2f}"
                     for i, it in enumerate(propias_h_pend)
                 ]
                 if "idx_del_hito_pas" not in st.session_state:
@@ -3946,13 +6374,13 @@ else:
         st.markdown("## Bienvenido (Modo Pasante)\nSelecciona una obra desde el panel lateral para comenzar.")
 
 #=====================================================
-#==================== CSS PCERRAR SESIÓN  ====================
+#==================== CSS CERRAR SESIÓN  ====================
 st.sidebar.markdown("""
 <style>
     /* Solo botones "primary" en el sidebar */
     section[data-testid="stSidebar"] button[kind="primary"] {
-        background-color: #e74c3c !important;
-        color: white !important;
+        background-color: var(--secondary-gray) !important;
+        color: var(--text-dark) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -3961,10 +6389,9 @@ st.sidebar.markdown("""
 st.sidebar.markdown("---")
 if st.sidebar.button("Cerrar Sesión", 
                     use_container_width=True, 
-                    type="primary",  # Cambiado a "primary"
+                    type="primary",
                     help="Salir del sistema"):
     # Limpiar todas las variables de sesión
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
-    
